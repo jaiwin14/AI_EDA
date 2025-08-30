@@ -1,5 +1,6 @@
 from fastapi import FastAPI, WebSocket, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 import uvicorn
 import json
 import uuid
@@ -9,21 +10,17 @@ import importlib
 import pkgutil
 import sys
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List
 import asyncio
+import io
 
 # Add the backend directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from db.connection import (
-    init_db,
-    store_dataframe,
-    load_dataframe,
-    store_session,
-    get_session_history
-)
+# Import our new database handler
+from database import Database
 
-app = FastAPI()
+app = FastAPI(title="AI EDA API", description="API for AI-powered Exploratory Data Analysis")
 
 # Enable CORS
 app.add_middleware(
@@ -36,6 +33,9 @@ app.add_middleware(
 
 # Store active connections
 active_connections: Dict[str, WebSocket] = {}
+
+# Initialize database
+db = Database()
 
 # Dynamic EDA function loading
 eda_functions = {}
@@ -56,7 +56,11 @@ def load_eda_functions():
 @app.on_event("startup")
 async def startup_event():
     """Initialize database and load EDA functions"""
-    init_db()
+    # Create data directory if it doesn't exist
+    data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+    os.makedirs(data_dir, exist_ok=True)
+    
+    # Load EDA functions
     load_eda_functions()
 
 @app.get("/functions")
@@ -65,29 +69,94 @@ async def get_available_functions():
     return {"functions": list(eda_functions.keys())}
 
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...), background_tasks: BackgroundTasks = None):
     """Handle file upload and store in database"""
     try:
         # Read the file
         content = await file.read()
-        df = pd.read_csv(content)
         
-        # Generate unique ID and store
-        file_id = str(uuid.uuid4())
-        store_dataframe(file_id, file.filename, df)
+        # Determine file type and read accordingly
+        if file.filename.endswith('.csv'):
+            df = pd.read_csv(io.BytesIO(content))
+        elif file.filename.endswith(('.xls', '.xlsx')):
+            df = pd.read_excel(io.BytesIO(content))
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported file format. Please upload a CSV or Excel file.")
         
-        return {"file_id": file_id, "filename": file.filename}
+        # Generate unique ID and store in database
+        file_id = db.save_uploaded_file(df, file.filename)
+        
+        # Update file status to processing
+        db.update_file_status(file_id, "processing")
+        
+        # Update file status to ready after processing
+        if background_tasks:
+            background_tasks.add_task(db.update_file_status, file_id, "ready")
+        else:
+            db.update_file_status(file_id, "ready")
+        
+        return {"file_id": file_id, "filename": file.filename, "status": "processing"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/status/{file_id}")
 async def get_file_status(file_id: str):
     """Check if file exists and is ready for analysis"""
-    df = load_dataframe(file_id)
+    file_info = db.get_file_status(file_id)
+    
+    if file_info.get("status") == "not_found":
+        return JSONResponse(
+            status_code=404,
+            content={"exists": False, "message": "File not found"}
+        )
+    
     return {
-        "exists": df is not None,
-        "shape": df.shape if df is not None else None
+        "exists": True,
+        "status": file_info.get("status", "unknown"),
+        "filename": file_info.get("original_filename", ""),
+        "upload_time": file_info.get("upload_time", ""),
+        "row_count": file_info.get("row_count", 0),
+        "column_count": file_info.get("column_count", 0)
     }
+
+@app.get("/files")
+async def list_files():
+    """List all uploaded files"""
+    files = db.list_uploaded_files()
+    return {"files": files}
+
+@app.get("/download/{file_id}")
+async def download_file(file_id: str, cleaned: bool = False):
+    """Download a file as CSV"""
+    try:
+        # Get the dataframe
+        df = db.get_dataframe(file_id, is_cleaned=cleaned)
+        if df is None:
+            return JSONResponse(
+                status_code=404,
+                content={"message": "File not found"}
+            )
+        
+        # Create a temporary file
+        temp_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', f"{file_id}.csv")
+        df.to_csv(temp_file, index=False)
+        
+        # Get the original filename
+        file_info = db.get_file_status(file_id)
+        filename = file_info.get("original_filename", "download.csv")
+        if cleaned:
+            filename = f"cleaned_{filename}"
+        
+        return FileResponse(
+            path=temp_file,
+            filename=filename,
+            media_type="text/csv"
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"message": f"Error downloading file: {str(e)}"}
+        )
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -97,6 +166,13 @@ async def websocket_endpoint(websocket: WebSocket):
     active_connections[client_id] = websocket
     
     try:
+        # Send connection confirmation
+        await websocket.send_json({
+            "type": "connection",
+            "status": "connected",
+            "client_id": client_id
+        })
+        
         while True:
             data = await websocket.receive_json()
             
@@ -114,7 +190,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     continue
                 
                 # Load DataFrame
-                df = load_dataframe(file_id)
+                df = db.get_dataframe(file_id)
                 if df is None:
                     await websocket.send_json({
                         "type": "error",
@@ -125,16 +201,25 @@ async def websocket_endpoint(websocket: WebSocket):
                 # Run analysis function
                 if function_name in eda_functions:
                     try:
-                        # Handle custom query if present
-                        if function_name == "custom_query" and "query" in data:
-                            # Custom query handling logic here
-                            result = {"text": f"Custom query processed: {data['query']}"}
-                        else:
-                            result = eda_functions[function_name](df)
+                        # Send processing notification
+                        await websocket.send_json({
+                            "type": "processing",
+                            "function": function_name,
+                            "text": f"Processing {function_name} analysis..."
+                        })
                         
-                        # Store session
-                        session_id = str(uuid.uuid4())
-                        store_session(session_id, json.dumps(data), result)
+                        # Handle clean_data function specially
+                        if function_name == "clean_data":
+                            # Get treatment options from request if available
+                            treatment_options = data.get("treatment_options", None)
+                            result = eda_functions[function_name](df, treatment_options)
+                            
+                            # If cleaning was successful and returned a file_id, update it in the response
+                            if result.get("success") and result.get("file_id"):
+                                result["cleaned_file_id"] = result.pop("file_id")
+                        else:
+                            # Run standard analysis function
+                            result = eda_functions[function_name](df)
                         
                         # Send result
                         await websocket.send_json({
@@ -153,6 +238,13 @@ async def websocket_endpoint(websocket: WebSocket):
                         "text": f"Function {function_name} not found"
                     })
             
+            # Handle 'get_functions' action
+            elif data["action"] == "get_functions":
+                await websocket.send_json({
+                    "type": "functions",
+                    "functions": list(eda_functions.keys())
+                })
+            
             # Handle 'set_file' action for backward compatibility
             elif data["action"] == "set_file":
                 await websocket.send_json({
@@ -162,6 +254,14 @@ async def websocket_endpoint(websocket: WebSocket):
                     
     except Exception as e:
         print(f"WebSocket error: {e}")
+        # Try to send error message to client
+        try:
+            await websocket.send_json({
+                "type": "connection_error",
+                "text": f"Connection error: {str(e)}"
+            })
+        except:
+            pass
     finally:
         if client_id in active_connections:
             del active_connections[client_id]

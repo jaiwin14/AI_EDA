@@ -8,6 +8,7 @@ scipy>=1.10.0
 matplotlib>=3.7.0
 plotly>=5.15.0
 seaborn>=0.12.0
+kaleido>=0.2.1  # Required for plotly image export
 
 # Data profiling
 ydata-profiling>=4.5.0

@@ -3,6 +3,23 @@
 import { SidebarProps } from '@/types';
 
 export default function Sidebar({ activeFileId }: SidebarProps) {
+  const analysisSteps = [
+    { id: 'data-overview', name: 'Data Overview', icon: '📊' },
+    { id: 'data-quality', name: 'Data Quality', icon: '🔍' },
+    { id: 'missing-values', name: 'Missing Values', icon: '❓' },
+    { id: 'data-distribution', name: 'Data Distribution', icon: '📈' },
+    { id: 'correlation', name: 'Correlation Analysis', icon: '🔗' },
+    { id: 'outliers', name: 'Outlier Detection', icon: '⚠️' },
+    { id: 'insights', name: 'Key Insights', icon: '💡' },
+    { id: 'cleaned-data', name: 'Cleaned Data', icon: '✅' },
+  ];
+
+  const handleStepClick = (stepId: string) => {
+    // This will be implemented to navigate between analysis sections
+    console.log(`Navigate to ${stepId}`);
+    // We'll implement actual navigation functionality later
+  };
+
   return (
     <div className="w-64 bg-[#2A1458] text-white p-4 flex flex-col min-h-screen">
       <h1 className="text-xl font-bold mb-6">AI EDA</h1>
@@ -17,7 +34,27 @@ export default function Sidebar({ activeFileId }: SidebarProps) {
         </div>
       )}
 
-      {/* Analysis History */}
+      {/* Analysis Steps Navigation */}
+      <div className="mb-4">
+        <h2 className="text-sm font-semibold text-[#E8988A] uppercase mb-2">Analysis Steps</h2>
+        <nav>
+          <ul className="space-y-1">
+            {analysisSteps.map((step) => (
+              <li key={step.id}>
+                <button
+                  onClick={() => handleStepClick(step.id)}
+                  className="w-full text-left px-3 py-2 rounded hover:bg-[#3B1D7B] transition-colors flex items-center"
+                >
+                  <span className="mr-2">{step.icon}</span>
+                  <span className="text-sm">{step.name}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+
+      {/* Tips */}
       <div className="mt-auto">
         <h2 className="text-sm font-semibold text-[#E8988A] uppercase mb-2">Tips</h2>
         <ul className="text-sm space-y-2 text-gray-300">
