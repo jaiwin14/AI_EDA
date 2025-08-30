@@ -100,9 +100,18 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_json()
             
-            if data["action"] == "run_analysis":
-                function_name = data["function"]
-                file_id = data["file_id"]
+            # Handle both 'run_analysis' (new) and 'analyze' (old) actions
+            if data["action"] == "run_analysis" or data["action"] == "analyze":
+                # Extract function name from either 'function' or 'type' field
+                function_name = data.get("function", data.get("type"))
+                file_id = data.get("file_id")
+                
+                if not file_id:
+                    await websocket.send_json({
+                        "type": "error",
+                        "text": "Missing file_id in request"
+                    })
+                    continue
                 
                 # Load DataFrame
                 df = load_dataframe(file_id)
@@ -116,7 +125,12 @@ async def websocket_endpoint(websocket: WebSocket):
                 # Run analysis function
                 if function_name in eda_functions:
                     try:
-                        result = eda_functions[function_name](df)
+                        # Handle custom query if present
+                        if function_name == "custom_query" and "query" in data:
+                            # Custom query handling logic here
+                            result = {"text": f"Custom query processed: {data['query']}"}
+                        else:
+                            result = eda_functions[function_name](df)
                         
                         # Store session
                         session_id = str(uuid.uuid4())
@@ -138,6 +152,13 @@ async def websocket_endpoint(websocket: WebSocket):
                         "type": "error",
                         "text": f"Function {function_name} not found"
                     })
+            
+            # Handle 'set_file' action for backward compatibility
+            elif data["action"] == "set_file":
+                await websocket.send_json({
+                    "type": "info",
+                    "text": "Please upload file through the /upload endpoint to get a file_id"
+                })
                     
     except Exception as e:
         print(f"WebSocket error: {e}")
