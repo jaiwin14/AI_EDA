@@ -51,7 +51,8 @@ export default function FileUpload({ onFileUploaded }: FileUploadProps) {
       if (!response.ok) throw new Error('Upload failed');
 
       const data = await response.json();
-      onFileUploaded(file);
+      // Pass both file and file_id to parent component
+      onFileUploaded(file, data.file_id);
     } catch (error) {
       console.error('Upload error:', error);
       alert('Failed to upload file. Please try again.');

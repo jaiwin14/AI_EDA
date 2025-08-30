@@ -14,14 +14,27 @@ const Home = () => {
   const [activeFileId, setActiveFileId] = useState<string | null>(null);
   const [analysisResults, setAnalysisResults] = useState<AnalysisResult[]>([]);
 
-  const handleFileUpload = (file: File) => {
+  const handleFileUpload = (file: File, fileId: string) => {
     setSelectedDataset(file);
-    setActiveFileId(file.name);
-    // Additional logic for file upload will go here
+    setActiveFileId(fileId);
+    // Clear previous analysis results when a new file is uploaded
+    setAnalysisResults([]);
   };
 
   const handleAnalysisRequest = (request: string) => {
-    // Logic to send analysis request to backend will go here
+    try {
+      // Check if the request is a JSON string (response from server)
+      const parsedData = JSON.parse(request);
+      if (parsedData.type === 'response') {
+        // It's a response from the server
+        setAnalysisResults(prev => [...prev, parsedData]);
+        return;
+      }
+    } catch (e) {
+      // Not a JSON string, treat as a regular request
+    }
+    
+    // Handle as a regular request
     const newResult: AnalysisResult = {
       type: 'request',
       data: request,
@@ -35,9 +48,10 @@ const Home = () => {
       <Sidebar activeFileId={activeFileId} />
       <div className="flex-1 flex flex-col">
         <FileUpload onFileUploaded={handleFileUpload} />
-        {selectedDataset && (
+        {selectedDataset && activeFileId && (
           <ChatInterface 
             file={selectedDataset}
+            fileId={activeFileId}
             onAnalysisRequest={handleAnalysisRequest}
             analysisResults={analysisResults}
           />
@@ -48,7 +62,3 @@ const Home = () => {
 };
 
 export default Home;
-}
-    </div>
-  );
-}

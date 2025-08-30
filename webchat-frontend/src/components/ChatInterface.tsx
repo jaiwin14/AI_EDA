@@ -10,7 +10,7 @@ interface Message {
   plot?: string;
 }
 
-export default function ChatInterface({ file, onAnalysisRequest, analysisResults }: ChatInterfaceProps) {
+export default function ChatInterface({ file, fileId, onAnalysisRequest, analysisResults }: ChatInterfaceProps) {
   const [input, setInput] = useState('');
   const [ws, setWs] = useState<WebSocket | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -28,18 +28,24 @@ export default function ChatInterface({ file, onAnalysisRequest, analysisResults
     
     websocket.onopen = () => {
       console.log('Connected to WebSocket');
-      // Send file info when connection is established
-      if (file) {
-        websocket.send(JSON.stringify({
-          action: 'set_file',
-          filename: file.name
-        }));
-      }
+      // No need to send file info here as we'll include file_id in each request
     };
 
     websocket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      onAnalysisRequest(data.text || 'Analysis complete');
+      if (data.type === 'error') {
+        onAnalysisRequest(`Error: ${data.text}`);
+      } else if (data.type === 'result') {
+        // Create a response object with all the data from the server
+        const responseData = {
+          type: 'response',
+          data: data,
+          timestamp: new Date().toISOString()
+        };
+        onAnalysisRequest(JSON.stringify(responseData));
+      } else if (data.type === 'info') {
+        onAnalysisRequest(`Info: ${data.text}`);
+      }
     };
 
     websocket.onerror = (error) => {
@@ -51,7 +57,7 @@ export default function ChatInterface({ file, onAnalysisRequest, analysisResults
     return () => {
       websocket.close();
     };
-  }, [file]);
+  }, []);
 
   useEffect(() => {
     // Scroll to bottom when new results come in
@@ -59,10 +65,11 @@ export default function ChatInterface({ file, onAnalysisRequest, analysisResults
   }, [analysisResults]);
 
   const sendQuickAction = (action: string) => {
-    if (!ws) return;
+    if (!ws || !fileId) return;
     const message = {
-      action: 'analyze',
-      type: action.toLowerCase().replace(/\s+/g, '_'),
+      action: 'run_analysis',
+      function: action.toLowerCase().replace(/\s+/g, '_'),
+      file_id: fileId
     };
     ws.send(JSON.stringify(message));
     onAnalysisRequest(`Requested ${action.toLowerCase()}`);
@@ -70,12 +77,13 @@ export default function ChatInterface({ file, onAnalysisRequest, analysisResults
 
   const handleCustomQuery = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !ws) return;
+    if (!input.trim() || !ws || !fileId) return;
 
     const message = {
-      action: 'analyze',
-      type: 'custom_query',
-      query: input
+      action: 'run_analysis',
+      function: 'custom_query',
+      query: input,
+      file_id: fileId
     };
 
     ws.send(JSON.stringify(message));

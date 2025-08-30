@@ -1,12 +1,13 @@
 import { ReactNode } from 'react';
 
 export interface FileUploadProps {
-  onFileUploaded: (file: File) => void;
+  onFileUploaded: (file: File, fileId: string) => void;
   children?: ReactNode;
 }
 
 export interface ChatInterfaceProps {
   file: File | null;
+  fileId: string | null;
   onAnalysisRequest: (request: string) => void;
   analysisResults: AnalysisResult[];
   children?: ReactNode;
