@@ -7,6 +7,10 @@ import sys
 import os
 import pandas as pd
 import numpy as np
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 def test_imports():
     """Test if all required packages can be imported"""
@@ -114,7 +118,8 @@ def test_eda_modules():
         'A': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
         'B': [2, 4, 6, 8, 10, 12, 14, 16, 18, 20],
         'C': [1, 3, 5, 7, 9, 11, 13, 15, 17, 19],
-        'D': ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
+        'D': ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'],
+        'E': ['low', 'medium', 'high', 'low', 'medium', 'high', 'low', 'medium', 'high', 'low']
     })
     
     # Add some missing values for testing
@@ -126,7 +131,14 @@ def test_eda_modules():
         'correlation', 
         'data_distribution',
         'missing_values',
-        'outlier_detection'
+        'outlier_detection',
+        'dataset_info',
+        'univariate_analysis',
+        'bivariate_analysis',
+        'outlier_detection_enhanced',
+        'standardization_analysis',
+        'encoding_analysis',
+        'analysis_summary'
     ]
     
     success_count = 0

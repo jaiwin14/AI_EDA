@@ -1,18 +1,31 @@
+import sys
+import os
+from pathlib import Path
+
+# Add the project root directory to Python path
+project_root = Path(__file__).parent.parent
+sys.path.append(str(project_root))
+
 from fastapi import FastAPI, WebSocket, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 import uvicorn
 import json
 import uuid
-from pathlib import Path
+from datetime import datetime
 import pandas as pd
+import numpy as np
 import importlib
 import pkgutil
-import sys
-import os
 from typing import Dict, Any, Optional, List
 import asyncio
 import io
+from dotenv import load_dotenv
+from utils.serialization import serialize_numpy, infer_and_convert_types, to_json_serializable
+from utils.ai_utils import generate_insight, AIProvider
+
+# Load environment variables
+load_dotenv()
 
 # Add the backend directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -20,19 +33,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Import our new database handler
 from database import Database
 
-app = FastAPI(title="AI EDA API", description="API for AI-powered Exploratory Data Analysis")
-
-# Enable CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Store active connections
 active_connections: Dict[str, WebSocket] = {}
+
+# Store file summaries in memory (you might want to move this to a proper database)
+file_summaries: Dict[str, Dict] = {}
 
 # Initialize database
 db = Database()
@@ -53,20 +58,475 @@ def load_eda_functions():
         except ImportError as e:
             print(f"Error loading module {name}: {e}")
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database and load EDA functions"""
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan event handler for FastAPI"""
     # Create data directory if it doesn't exist
     data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
     os.makedirs(data_dir, exist_ok=True)
     
     # Load EDA functions
     load_eda_functions()
+    
+    yield
+
+app = FastAPI(
+    title="AI EDA API", 
+    description="API for AI-powered Exploratory Data Analysis",
+    lifespan=lifespan
+)
+
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/functions")
 async def get_available_functions():
     """Return list of available EDA functions"""
     return {"functions": list(eda_functions.keys())}
+
+@app.get("/file/{file_id}/summary")
+async def get_file_summary(file_id: str):
+    """Get summary statistics and information about a file"""
+    try:
+        summary = db.get_file_summary(file_id)
+        if not summary:
+            raise HTTPException(status_code=404, detail="File not found")
+        return JSONResponse(content=summary)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/file/{file_id}/missing")
+async def analyze_missing_values(file_id: str):
+    """Analyze missing values in the dataset"""
+    try:
+        df = db.get_dataframe(file_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Calculate missing value statistics
+        missing_stats = {
+            "total_missing": df.isnull().sum().sum(),
+            "missing_by_column": df.isnull().sum().to_dict(),
+            "missing_percentage": (df.isnull().sum() / len(df) * 100).to_dict(),
+            "missing_pattern": df.isnull().sum(axis=1).value_counts().to_dict(),
+            "missing_correlation": df.isnull().corr().to_dict()
+        }
+        
+        # Generate AI insights about missing values
+        insight_prompt = f"""
+        Analyze the missing value patterns in this dataset:
+        - Total missing values: {missing_stats['total_missing']}
+        - Missing percentages by column: {missing_stats['missing_percentage']}
+        - Missing value patterns: {missing_stats['missing_pattern']}
+        
+        Please provide:
+        1. Assessment of missing data patterns (MCAR, MAR, or MNAR)
+        2. Recommendations for handling missing values
+        3. Potential impact on analysis
+        """
+        
+        try:
+            missing_stats["ai_insights"] = generate_insight(insight_prompt, context=missing_stats)
+        except:
+            missing_stats["ai_insights"] = "Unable to generate AI insights at this time."
+        
+        return JSONResponse(content=missing_stats)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/file/{file_id}/missing/treat")
+async def treat_missing_values(
+    file_id: str,
+    treatment_method: str = "mean",  # mean, median, mode, drop
+    columns: List[str] = None  # If None, treat all columns
+):
+    """Treat missing values in the dataset"""
+    try:
+        df = db.get_dataframe(file_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        df_treated = df.copy()
+        columns_to_treat = columns or df.columns
+        
+        # Treatment statistics
+        treatment_stats = {"treated_columns": {}}
+        
+        for col in columns_to_treat:
+            if col not in df.columns:
+                continue
+                
+            missing_count = df[col].isnull().sum()
+            if missing_count == 0:
+                continue
+                
+            original_values = df[col].copy()
+            
+            if treatment_method == "drop":
+                df_treated = df_treated.dropna(subset=[col])
+            else:
+                if pd.api.types.is_numeric_dtype(df[col]):
+                    if treatment_method == "mean":
+                        value = df[col].mean()
+                    elif treatment_method == "median":
+                        value = df[col].median()
+                    else:  # mode
+                        value = df[col].mode()[0]
+                else:  # categorical
+                    value = df[col].mode()[0]
+                
+                df_treated[col].fillna(value, inplace=True)
+            
+            treatment_stats["treated_columns"][col] = {
+                "missing_count": int(missing_count),
+                "treatment_method": treatment_method,
+                "replacement_value": value if treatment_method != "drop" else None
+            }
+        
+        # Save treated dataframe and update summary
+        new_file_id = db.save_uploaded_file(df_treated, f"treated_{file_id}.csv")
+        
+        treatment_stats.update({
+            "original_file_id": file_id,
+            "treated_file_id": new_file_id,
+            "original_rows": len(df),
+            "treated_rows": len(df_treated),
+            "treatment_method": treatment_method,
+            "treatment_date": datetime.now().isoformat()
+        })
+        
+        db.add_cleaning_step(file_id, "missing_values", treatment_stats)
+        
+        return JSONResponse(content=treatment_stats)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+from backend.routes.analytics import router as analytics_router
+
+# Include analytics routes
+app.include_router(analytics_router, prefix="/analytics", tags=["Analytics"])
+
+@app.get("/file/{file_id}/intelligent_conversion")
+async def intelligent_conversion(file_id: str):
+    """Analyze and intelligently convert data types using AI assistance"""
+    try:
+        df = db.get_dataframe(file_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Run intelligent conversion analysis
+        if 'intelligent_conversion' in eda_functions:
+            results = eda_functions['intelligent_conversion'](df)
+            
+            # Save the converted DataFrame
+            if 'converted_df' in results:
+                converted_df = results.pop('converted_df')  # Remove from results to avoid serialization issues
+                new_file_id = db.save_uploaded_file(converted_df, f"converted_{file_id}.csv")
+                results['converted_file_id'] = new_file_id
+            
+            return JSONResponse(content=to_json_serializable(results))
+        else:
+            raise HTTPException(status_code=400, detail="Intelligent conversion function not available")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/file/{file_id}/dataset_info")
+async def get_dataset_info(file_id: str):
+    """Get comprehensive dataset information and describe statistics"""
+    try:
+        df = db.get_dataframe(file_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        if 'dataset_info' in eda_functions:
+            results = eda_functions['dataset_info'](df)
+            return JSONResponse(content=to_json_serializable(results))
+        else:
+            raise HTTPException(status_code=400, detail="Dataset info function not available")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/file/{file_id}/univariate_analysis")
+async def univariate_analysis(file_id: str):
+    """Perform univariate analysis for each column with appropriate visualizations"""
+    try:
+        df = db.get_dataframe(file_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        if 'univariate_analysis' in eda_functions:
+            results = eda_functions['univariate_analysis'](df)
+            return JSONResponse(content=to_json_serializable(results))
+        else:
+            raise HTTPException(status_code=400, detail="Univariate analysis function not available")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/file/{file_id}/bivariate_analysis")
+async def bivariate_analysis(file_id: str):
+    """Perform bivariate analysis with appropriate visualizations"""
+    try:
+        df = db.get_dataframe(file_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        if 'bivariate_analysis' in eda_functions:
+            results = eda_functions['bivariate_analysis'](df)
+            return JSONResponse(content=to_json_serializable(results))
+        else:
+            raise HTTPException(status_code=400, detail="Bivariate analysis function not available")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/file/{file_id}/outlier_detection_enhanced")
+async def enhanced_outlier_detection(file_id: str):
+    """Enhanced outlier detection using multiple methods with AI insights"""
+    try:
+        df = db.get_dataframe(file_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        if 'outlier_detection_enhanced' in eda_functions:
+            results = eda_functions['outlier_detection_enhanced'](df)
+            return JSONResponse(content=to_json_serializable(results))
+        else:
+            raise HTTPException(status_code=400, detail="Enhanced outlier detection function not available")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/file/{file_id}/outlier_treatment")
+async def treat_outliers(
+    file_id: str,
+    treatment_method: str = "capping",  # capping, removal, transformation
+    columns: List[str] = None  # If None, treat all numeric columns
+):
+    """Treat outliers in the dataset"""
+    try:
+        df = db.get_dataframe(file_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        if 'outlier_detection_enhanced' in eda_functions:
+            # Import the treat_outliers function
+            from eda.outlier_detection_enhanced import treat_outliers as treat_outliers_func
+            results = treat_outliers_func(df, treatment_method, columns)
+            
+            # Save treated dataframe
+            if 'treated_dataframe' in results:
+                treated_df = results.pop('treated_dataframe')
+                new_file_id = db.save_uploaded_file(treated_df, f"outlier_treated_{file_id}.csv")
+                results['treated_file_id'] = new_file_id
+            
+            return JSONResponse(content=to_json_serializable(results))
+        else:
+            raise HTTPException(status_code=400, detail="Outlier treatment function not available")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/file/{file_id}/standardization_analysis")
+async def standardization_analysis(file_id: str):
+    """Analyze the need for standardization and recommend methods"""
+    try:
+        df = db.get_dataframe(file_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        if 'standardization_analysis' in eda_functions:
+            results = eda_functions['standardization_analysis'](df)
+            return JSONResponse(content=to_json_serializable(results))
+        else:
+            raise HTTPException(status_code=400, detail="Standardization analysis function not available")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/file/{file_id}/apply_standardization")
+async def apply_standardization(
+    file_id: str,
+    method: str = "StandardScaler",  # StandardScaler, MinMaxScaler
+    columns: List[str] = None  # If None, standardize all numeric columns
+):
+    """Apply standardization to the dataset"""
+    try:
+        df = db.get_dataframe(file_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        if 'standardization_analysis' in eda_functions:
+            # Import the apply_standardization function
+            from eda.standardization_analysis import apply_standardization as apply_standardization_func
+            results = apply_standardization_func(df, method, columns)
+            
+            # Save standardized dataframe
+            if 'standardized_dataframe' in results:
+                standardized_df = results.pop('standardized_dataframe')
+                new_file_id = db.save_uploaded_file(standardized_df, f"standardized_{file_id}.csv")
+                results['standardized_file_id'] = new_file_id
+            
+            return JSONResponse(content=to_json_serializable(results))
+        else:
+            raise HTTPException(status_code=400, detail="Standardization function not available")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/file/{file_id}/encoding_analysis")
+async def encoding_analysis(file_id: str):
+    """Analyze the need for categorical encoding and recommend methods"""
+    try:
+        df = db.get_dataframe(file_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        if 'encoding_analysis' in eda_functions:
+            results = eda_functions['encoding_analysis'](df)
+            return JSONResponse(content=to_json_serializable(results))
+        else:
+            raise HTTPException(status_code=400, detail="Encoding analysis function not available")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/file/{file_id}/apply_encoding")
+async def apply_encoding(
+    file_id: str,
+    method: str = "Label Encoding",  # Label Encoding, One-Hot Encoding, Target Encoding
+    columns: List[str] = None  # If None, encode all categorical columns
+):
+    """Apply encoding to the dataset"""
+    try:
+        df = db.get_dataframe(file_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        if 'encoding_analysis' in eda_functions:
+            # Import the apply_encoding function
+            from eda.encoding_analysis import apply_encoding as apply_encoding_func
+            results = apply_encoding_func(df, method, columns)
+            
+            # Save encoded dataframe
+            if 'encoded_dataframe' in results:
+                encoded_df = results.pop('encoded_dataframe')
+                new_file_id = db.save_uploaded_file(encoded_df, f"encoded_{file_id}.csv")
+                results['encoded_file_id'] = new_file_id
+            
+            return JSONResponse(content=to_json_serializable(results))
+        else:
+            raise HTTPException(status_code=400, detail="Encoding function not available")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/file/{file_id}/dimensionality_reduction")
+async def dimensionality_reduction_analysis(file_id: str):
+    """Analyze the need for dimensionality reduction and recommend methods"""
+    try:
+        df = db.get_dataframe(file_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        if 'dimensionality_reduction' in eda_functions:
+            results = eda_functions['dimensionality_reduction'](df)
+            return JSONResponse(content=to_json_serializable(results))
+        else:
+            raise HTTPException(status_code=400, detail="Dimensionality reduction analysis function not available")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/file/{file_id}/apply_pca")
+async def apply_pca(
+    file_id: str,
+    n_components: int = None,
+    variance_threshold: float = 0.95
+):
+    """Apply PCA to the dataset"""
+    try:
+        df = db.get_dataframe(file_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        if 'dimensionality_reduction' in eda_functions:
+            # Import the apply_pca function
+            from eda.dimensionality_reduction import apply_pca as apply_pca_func
+            results = apply_pca_func(df, n_components, variance_threshold)
+            
+            # Save PCA dataframe
+            if 'pca_dataframe' in results:
+                pca_df = results.pop('pca_dataframe')
+                new_file_id = db.save_uploaded_file(pca_df, f"pca_{file_id}.csv")
+                results['pca_file_id'] = new_file_id
+            
+            return JSONResponse(content=to_json_serializable(results))
+        else:
+            raise HTTPException(status_code=400, detail="PCA function not available")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/file/{file_id}/apply_tsne")
+async def apply_tsne(
+    file_id: str,
+    n_components: int = 2,
+    perplexity: float = 30.0
+):
+    """Apply t-SNE to the dataset"""
+    try:
+        df = db.get_dataframe(file_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        if 'dimensionality_reduction' in eda_functions:
+            # Import the apply_tsne function
+            from eda.dimensionality_reduction import apply_tsne as apply_tsne_func
+            results = apply_tsne_func(df, n_components, perplexity)
+            
+            # Save t-SNE dataframe
+            if 'tsne_dataframe' in results:
+                tsne_df = results.pop('tsne_dataframe')
+                new_file_id = db.save_uploaded_file(tsne_df, f"tsne_{file_id}.csv")
+                results['tsne_file_id'] = new_file_id
+            
+            return JSONResponse(content=to_json_serializable(results))
+        else:
+            raise HTTPException(status_code=400, detail="t-SNE function not available")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/file/{file_id}/analysis_summary")
+async def analysis_summary(file_id: str):
+    """Generate comprehensive analysis summary using AI"""
+    try:
+        df = db.get_dataframe(file_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        if 'analysis_summary' in eda_functions:
+            results = eda_functions['analysis_summary'](df)
+            return JSONResponse(content=to_json_serializable(results))
+        else:
+            raise HTTPException(status_code=400, detail="Analysis summary function not available")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/file/{file_id}/missing_analysis")
+async def advanced_missing_analysis(file_id: str):
+    """Perform advanced missing values analysis with visualizations and AI insights"""
+    try:
+        df = db.get_dataframe(file_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Run missing values analysis
+        if 'missing_values_analysis' in eda_functions:
+            results = eda_functions['missing_values_analysis'](df)
+            return JSONResponse(content=results)
+        else:
+            raise HTTPException(status_code=400, detail="Missing values analysis function not available")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...), background_tasks: BackgroundTasks = None):
@@ -77,25 +537,83 @@ async def upload_file(file: UploadFile = File(...), background_tasks: Background
         
         # Determine file type and read accordingly
         if file.filename.endswith('.csv'):
-            df = pd.read_csv(io.BytesIO(content))
+            try:
+                df = pd.read_csv(io.BytesIO(content))
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Error reading CSV file: {str(e)}")
         elif file.filename.endswith(('.xls', '.xlsx')):
-            df = pd.read_excel(io.BytesIO(content))
+            try:
+                df = pd.read_excel(io.BytesIO(content))
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Error reading Excel file: {str(e)}")
         else:
             raise HTTPException(status_code=400, detail="Unsupported file format. Please upload a CSV or Excel file.")
         
+        # Check if dataframe is empty
+        if df.empty:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty")
+        
+        # Infer and convert data types
+        try:
+            df = infer_and_convert_types(df)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error processing data types: {str(e)}")
+        
+        # Generate summary statistics
+        try:
+            summary = {
+                "info": {
+                    "shape": df.shape,
+                    "columns": list(df.columns),
+                    "dtypes": df.dtypes.apply(str).to_dict(),
+                    "missing_values": df.isnull().sum().to_dict(),
+                    "memory_usage": df.memory_usage(deep=True).sum(),
+                    "data_preview": df.head().to_dict('records')
+                },
+                "describe": to_json_serializable(df.describe(include='all')),
+                "missing_analysis": {
+                    "total_missing": df.isnull().sum().sum(),
+                    "missing_by_column": df.isnull().sum().to_dict(),
+                    "missing_percentage": (df.isnull().sum() / len(df) * 100).to_dict()
+                },
+                "numeric_columns": df.select_dtypes(include=['int64', 'float64']).columns.tolist(),
+                "categorical_columns": df.select_dtypes(include=['object', 'category', 'bool']).columns.tolist()
+            }
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error generating summary: {str(e)}")
+        
+        # Generate AI insights about the dataset
+        insight_prompt = f"""
+        Given the following dataset summary, provide a brief overview of the data:
+        - {df.shape[0]} rows and {df.shape[1]} columns
+        - Column types: {df.dtypes.value_counts().to_dict()}
+        - Missing values: {df.isnull().sum().sum()} total
+        
+        Focus on:
+        1. Data quality issues (missing values, potential data type conversions needed)
+        2. Recommendations for cleaning and preprocessing
+        3. Initial observations about the data structure
+        """
+        
+        try:
+            summary["ai_insights"] = generate_insight(insight_prompt, context=summary)
+        except Exception as e:
+            summary["ai_insights"] = f"AI insights generation failed: {str(e)}"
+        
         # Generate unique ID and store in database
-        file_id = db.save_uploaded_file(df, file.filename)
-        
-        # Update file status to processing
-        db.update_file_status(file_id, "processing")
-        
-        # Update file status to ready after processing
-        if background_tasks:
-            background_tasks.add_task(db.update_file_status, file_id, "ready")
-        else:
+        try:
+            file_id = db.save_uploaded_file(df, file.filename)
+            db.save_file_summary(file_id, summary)
             db.update_file_status(file_id, "ready")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error saving file to database: {str(e)}")
         
-        return {"file_id": file_id, "filename": file.filename, "status": "processing"}
+        return {
+            "file_id": file_id, 
+            "filename": file.filename, 
+            "status": "ready",
+            "summary": summary
+        }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

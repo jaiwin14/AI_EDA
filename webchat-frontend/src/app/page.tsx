@@ -8,13 +8,13 @@ const Header = dynamic(() => import('@/components/Header'), { ssr: false });
 
 const Home = () => {
   return (
-    <div className="flex flex-col h-screen bg-[#FFEAD8]">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <Header />
       <main className="flex flex-1 overflow-hidden">
         <Dashboard />
-        </main>
-      </div>
-    );
-  };
-  
-  export default Home;
+      </main>
+    </div>
+  );
+};
+
+export default Home;

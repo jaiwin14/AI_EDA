@@ -32,6 +32,14 @@ def start_frontend():
     frontend_dir = Path(__file__).parent / "webchat-frontend"
     
     try:
+        # Check if npm is available
+        try:
+            subprocess.run(["npm", "--version"], check=True, capture_output=True)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print("❌ npm is not installed or not in PATH")
+            print("Please install Node.js from https://nodejs.org/")
+            return
+        
         # Check if node_modules exists
         if not (frontend_dir / "node_modules").exists():
             print("📦 Installing frontend dependencies...")
@@ -45,6 +53,7 @@ def start_frontend():
         print("\n🛑 Frontend server stopped")
     except Exception as e:
         print(f"❌ Error starting frontend: {e}")
+        print("💡 Make sure Node.js and npm are installed and in your PATH")
 
 def main():
     """Main startup function"""

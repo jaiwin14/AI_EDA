@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
-  Grid,
   Paper,
   Typography,
   Button,
@@ -14,26 +15,24 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
-  CircularProgress,
   Alert,
   Stepper,
   Step,
   StepLabel,
-  Card,
-  CardContent,
   IconButton,
+  Chip,
+  CircularProgress,
+  Snackbar,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import TableChartIcon from '@mui/icons-material/TableChart';
-import BarChartIcon from '@mui/icons-material/BarChart';
-import BubbleChartIcon from '@mui/icons-material/BubbleChart';
-import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
 import WarningIcon from '@mui/icons-material/Warning';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import DownloadIcon from '@mui/icons-material/Download';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
 import FileUpload from './FileUpload';
 import DataSummary from './DataSummary';
 import MissingValues from './MissingValues';
@@ -42,7 +41,7 @@ import DataDistribution from './DataDistribution';
 import OutlierDetection from './OutlierDetection';
 import Correlation from './Correlation';
 
-const drawerWidth = 240;
+const drawerWidth = 280;
 
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
   ({ theme, open }: { theme: any; open: boolean }) => ({
@@ -75,6 +74,7 @@ const StyledAppBar = styled(AppBar, {
   shouldForwardProp: (prop) => prop !== 'open',
 })(
   ({ theme, open }: { theme: any; open: boolean }) => ({
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     transition: theme.transitions.create(['margin', 'width'], {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
@@ -100,262 +100,204 @@ const steps = [
   'Correlation Analysis',
 ];
 
-const Dashboard: React.FC = () => {
-  const [activeStep, setActiveStep] = useState<number>(0);
-  const [drawerOpen, setDrawerOpen] = useState<boolean>(true);
+export default function Dashboard() {
+  const [activeStep, setActiveStep] = useState(0);
+  const [drawerOpen, setDrawerOpen] = useState(true);
+  const [activeFile, setActiveFile] = useState<File | null>(null);
   const [activeFileId, setActiveFileId] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string>('');
-  const [websocket, setWebsocket] = useState<WebSocket | null>(null);
-  const [isConnected, setIsConnected] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [analysisResults, setAnalysisResults] = useState<{
-    summary?: any;
-    missing_values?: any;
-    data_distribution?: any;
-    outlier_detection?: any;
-    correlation?: any;
-    treatment?: any;
-  }>({});
-  const [cleanedFileId, setCleanedFileId] = useState<string | null>(null);
-  
-  // WebSocket connection
+  const [isConnected, setIsConnected] = useState(false);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'info';
+  }>({ open: false, message: '', severity: 'info' });
+
+  // Test backend connection on component mount
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:8000/ws');
-    
-    ws.onopen = () => {
-      console.log('WebSocket connected');
-      setIsConnected(true);
-      setWebsocket(ws);
-    };
-    
-    ws.onclose = () => {
-      console.log('WebSocket disconnected');
-      setIsConnected(false);
-      setWebsocket(null);
-    };
-    
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setError('Failed to connect to the server. Please try again.');
-    };
-    
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log('WebSocket message:', data);
-        
-        if (data.type === 'result') {
-          // Handle analysis results
-          if (data.function && data.success) {
-            setAnalysisResults(prev => ({
-              ...prev,
-              [data.function]: data.result,
-            }));
-            
-            // If this is a treatment result, store the cleaned file ID
-            if (data.function === 'treat_missing_values' && data.cleaned_file_id) {
-              setCleanedFileId(data.cleaned_file_id);
-            }
-          } else if (data.type === 'error') {
-            setError(data.text || 'An error occurred during analysis');
-          }
-        }
-      } catch (err) {
-        console.error('Error parsing WebSocket message:', err);
-      }
-    };
-    
-    return () => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
-    };
+    testBackendConnection();
   }, []);
-  
-  const handleFileUpload = (file: File, fileId: string) => {
+
+  const testBackendConnection = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/functions');
+      setIsConnected(response.ok);
+    } catch (error) {
+      setIsConnected(false);
+      console.error('Backend connection failed:', error);
+    }
+  };
+
+  const handleDrawerToggle = () => {
+    setDrawerOpen(!drawerOpen);
+  };
+
+  const handleFileUploaded = (file: File, fileId: string) => {
+    setActiveFile(file);
     setActiveFileId(fileId);
-    setFileName(file.name);
-    setActiveStep(1); // Move to Data Summary step after upload
-    
-    // Reset analysis results when a new file is uploaded
-    setAnalysisResults({});
-    setCleanedFileId(null);
+    setActiveStep(1);
+    setError(null);
+    showSnackbar('File uploaded successfully!', 'success');
   };
-  
-  const handleDrawerOpen = () => {
-    setDrawerOpen(true);
-  };
-  
-  const handleDrawerClose = () => {
-    setDrawerOpen(false);
-  };
-  
-  const handleStepChange = (step: number) => {
-    setActiveStep(step);
-  };
-  
+
   const handleNext = () => {
-    setActiveStep((prevStep) => Math.min(prevStep + 1, steps.length - 1));
+    if (activeStep < steps.length - 1) {
+      setActiveStep(activeStep + 1);
+    }
   };
-  
+
   const handleBack = () => {
-    setActiveStep((prevStep) => Math.max(prevStep - 1, 0));
-  };
-  
-  const runAnalysis = (functionName: string) => {
-    if (!activeFileId || !websocket || websocket.readyState !== WebSocket.OPEN) {
-      setError('No active file or WebSocket connection');
-      return;
+    if (activeStep > 0) {
+      setActiveStep(activeStep - 1);
     }
-    
-    // Use cleaned file ID if available and appropriate
-    const fileId = (cleanedFileId && activeStep > 3) ? cleanedFileId : activeFileId;
-    
-    const message = {
-      action: 'run_analysis',
-      function: functionName,
-      file_id: fileId,
-    };
-    
-    websocket.send(JSON.stringify(message));
   };
-  
-  const handleTreatmentApplied = (newCleanedFileId: string) => {
-    setCleanedFileId(newCleanedFileId);
-  };
-  
-  const downloadFile = (isCleanedFile: boolean = false) => {
-    const fileId = isCleanedFile ? cleanedFileId : activeFileId;
-    if (!fileId) {
-      setError('No file available for download');
-      return;
+
+  const handleStepChange = (step: number) => {
+    if (step === 0 || (activeFileId && step <= activeStep)) {
+      setActiveStep(step);
     }
-    
-    // Ensure fileId is properly encoded in the URL
-    const encodedFileId = encodeURIComponent(fileId);
-    const url = `http://localhost:8000/download/${encodedFileId}${isCleanedFile ? '?cleaned=true' : ''}`;
-    console.log(`Downloading file from: ${url}`);
-    window.open(url, '_blank');
   };
-  
-  // Render the current step content
+
+  const showSnackbar = (message: string, severity: 'success' | 'error' | 'info') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
   const renderStepContent = () => {
+    if (!isConnected) {
+      return (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <ErrorIcon sx={{ fontSize: 64, color: 'error.main', mb: 2 }} />
+          <Typography variant="h5" gutterBottom>
+            Backend Connection Failed
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+            Unable to connect to the backend server. Please make sure the backend is running.
+          </Typography>
+          <Button
+            variant="contained"
+            onClick={testBackendConnection}
+            sx={{ mr: 2 }}
+          >
+            Retry Connection
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => window.open('http://localhost:8000/docs', '_blank')}
+          >
+            Open API Docs
+          </Button>
+        </Box>
+      );
+    }
+
     switch (activeStep) {
-      case 0: // Upload Data
-        return <FileUpload onFileUploaded={handleFileUpload} />;
-      
-      case 1: // Data Summary
+      case 0:
         return (
-          <DataSummary 
-            activeFileId={activeFileId} 
-            summaryData={analysisResults.summary} 
-            websocket={websocket} 
-            runAnalysis={() => runAnalysis('summary')} 
-          />
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="h4" gutterBottom sx={{ mb: 4 }}>
+              Welcome to AI EDA Dashboard
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+              Upload your data file to begin exploratory data analysis
+            </Typography>
+            <FileUpload onFileUploaded={handleFileUploaded} />
+          </Box>
         );
-      
-      case 2: // Missing Values
-        return (
-          <MissingValues 
-            activeFileId={activeFileId} 
-            missingData={analysisResults.missing_values} 
-            websocket={websocket} 
-            runAnalysis={() => runAnalysis('missing_values')} 
-          />
+      case 1:
+        return activeFileId ? (
+          <DataSummary fileId={activeFileId} />
+        ) : (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="h6" color="text.secondary">
+              Please upload a file first
+            </Typography>
+          </Box>
         );
-      
-      case 3: // Treat Missing Values
-        return (
-          <MissingValuesTreatment 
-            activeFileId={activeFileId} 
-            treatmentData={analysisResults.missing_values} 
-            onTreatmentApplied={handleTreatmentApplied} 
-            websocket={websocket} 
-          />
+      case 2:
+        return activeFileId ? (
+          <MissingValues fileId={activeFileId} />
+        ) : (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="h6" color="text.secondary">
+              Please upload a file first
+            </Typography>
+          </Box>
         );
-      
-      case 4: // Data Distribution
-        return (
-          <DataDistribution 
-            activeFileId={cleanedFileId || activeFileId} 
-            distributionData={analysisResults.data_distribution} 
-            websocket={websocket} 
-            runAnalysis={() => runAnalysis('data_distribution')} 
-          />
+      case 3:
+        return activeFileId ? (
+          <MissingValuesTreatment fileId={activeFileId} />
+        ) : (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="h6" color="text.secondary">
+              Please upload a file first
+            </Typography>
+          </Box>
         );
-      
-      case 5: // Outlier Detection
-        return (
-          <OutlierDetection 
-            activeFileId={cleanedFileId || activeFileId} 
-            outlierData={analysisResults.outlier_detection} 
-            websocket={websocket} 
-            runAnalysis={() => runAnalysis('outlier_detection')} 
-          />
+      case 4:
+        return activeFileId ? (
+          <DataDistribution fileId={activeFileId} />
+        ) : (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="h6" color="text.secondary">
+              Please upload a file first
+            </Typography>
+          </Box>
         );
-      
-      case 6: // Correlation Analysis
-        return (
-          <Correlation 
-            activeFileId={cleanedFileId || activeFileId} 
-            correlationData={analysisResults.correlation} 
-            websocket={websocket} 
-            runAnalysis={() => runAnalysis('correlation')} 
-          />
+      case 5:
+        return activeFileId ? (
+          <OutlierDetection fileId={activeFileId} />
+        ) : (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="h6" color="text.secondary">
+              Please upload a file first
+            </Typography>
+          </Box>
         );
-      
+      case 6:
+        return activeFileId ? (
+          <Correlation fileId={activeFileId} />
+        ) : (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="h6" color="text.secondary">
+              Please upload a file first
+            </Typography>
+          </Box>
+        );
       default:
-        return <Typography>Unknown step</Typography>;
+        return null;
     }
   };
-  
+
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', height: '100vh' }}>
       <StyledAppBar position="fixed" open={drawerOpen}>
         <Toolbar>
           <IconButton
             color="inherit"
             aria-label="open drawer"
-            onClick={handleDrawerOpen}
+            onClick={handleDrawerToggle}
             edge="start"
-            sx={{ mr: 2, ...(drawerOpen && { display: 'none' }) }}
+            sx={{ mr: 2 }}
           >
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            AI-Powered EDA Dashboard
+            AI EDA Dashboard
           </Typography>
-          {activeFileId && (
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Typography variant="body2" sx={{ mr: 2 }}>
-                Active File: {fileName}
-              </Typography>
-              <Button 
-                variant="outlined" 
-                color="inherit" 
-                size="small" 
-                startIcon={<DownloadIcon />}
-                onClick={() => downloadFile(false)}
-              >
-                Original
-              </Button>
-              {cleanedFileId && (
-                <Button 
-                  variant="outlined" 
-                  color="inherit" 
-                  size="small" 
-                  startIcon={<DownloadIcon />}
-                  onClick={() => downloadFile(true)}
-                  sx={{ ml: 1 }}
-                >
-                  Cleaned
-                </Button>
-              )}
-            </Box>
-          )}
+          <Chip
+            icon={isConnected ? <CheckCircleIcon /> : <ErrorIcon />}
+            label={isConnected ? 'Connected' : 'Disconnected'}
+            color={isConnected ? 'success' : 'error'}
+            variant="outlined"
+            sx={{ color: 'white', borderColor: 'white' }}
+          />
         </Toolbar>
-      </StyledAppBar>
-      
+      </AppBar>
+
       <Drawer
         sx={{
           width: drawerWidth,
@@ -363,6 +305,9 @@ const Dashboard: React.FC = () => {
           '& .MuiDrawer-paper': {
             width: drawerWidth,
             boxSizing: 'border-box',
+            background: 'linear-gradient(180deg, #1e293b 0%, #334155 100%)',
+            color: 'white',
+            borderRight: '1px solid rgba(255, 255, 255, 0.1)',
           },
         }}
         variant="persistent"
@@ -370,73 +315,128 @@ const Dashboard: React.FC = () => {
         open={drawerOpen}
       >
         <DrawerHeader>
-          <Typography variant="h6" sx={{ flexGrow: 1, ml: 2 }}>
+          <Typography variant="h6" sx={{ flexGrow: 1, ml: 2, color: 'white', fontWeight: 600 }}>
             EDA Steps
           </Typography>
-          <IconButton onClick={handleDrawerClose}>
+          <IconButton 
+            onClick={handleDrawerToggle}
+            sx={{ 
+              color: 'white',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              }
+            }}
+          >
             <ChevronLeftIcon />
           </IconButton>
         </DrawerHeader>
-        <Divider />
+        <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
         <List>
           {steps.map((text, index) => (
-            <ListItem 
+            <ListItem
               button 
               key={text} 
               onClick={() => handleStepChange(index)}
               selected={activeStep === index}
-              disabled={index > 0 && !activeFileId} // Disable steps if no file is uploaded
+              disabled={index > 0 && !activeFileId}
+              sx={{
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                },
+                '&.Mui-selected': {
+                  backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                  borderRight: '3px solid #3B82F6',
+                  '&:hover': {
+                    backgroundColor: 'rgba(59, 130, 246, 0.3)',
+                  }
+                },
+                '&.Mui-disabled': {
+                  color: 'rgba(255, 255, 255, 0.3)',
+                }
+              }}
             >
-              <ListItemIcon>
+              <ListItemIcon sx={{ color: 'white' }}>
                 {index === 0 && <UploadFileIcon />}
                 {index === 1 && <TableChartIcon />}
                 {index === 2 && <WarningIcon />}
-                {index === 3 && <CleaningServicesIcon />}
-                {index === 4 && <BarChartIcon />}
+                {index === 3 && <WarningIcon />}
+                {index === 4 && <TableChartIcon />}
                 {index === 5 && <WarningIcon />}
-                {index === 6 && <BubbleChartIcon />}
+                {index === 6 && <TableChartIcon />}
               </ListItemIcon>
               <ListItemText primary={text} />
             </ListItem>
           ))}
         </List>
-        <Divider />
-        <Box sx={{ p: 2 }}>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
+        <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+        <Box sx={{ p: 2, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 1 }}>
             Connection Status:
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Box
               sx={{
-                width: 10,
-                height: 10,
+                width: 8,
+                height: 8,
                 borderRadius: '50%',
-                bgcolor: isConnected ? 'success.main' : 'error.main',
+                bgcolor: isConnected ? '#10B981' : '#EF4444',
                 mr: 1,
+                boxShadow: isConnected ? '0 0 8px rgba(16, 185, 129, 0.5)' : '0 0 8px rgba(239, 68, 68, 0.5)',
               }}
             />
-            <Typography variant="body2">
+            <Typography variant="body2" sx={{ color: 'white', fontSize: '0.875rem' }}>
               {isConnected ? 'Connected' : 'Disconnected'}
             </Typography>
           </Box>
         </Box>
       </Drawer>
-      
+
       <Main open={drawerOpen}>
         <DrawerHeader />
         
-        <Container maxWidth="lg">
+        <Container maxWidth="lg" sx={{ py: 3 }}>
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mb: 3,
+                borderRadius: 2,
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                '& .MuiAlert-icon': {
+                  color: '#EF4444',
+                }
+              }} 
+              onClose={() => setError(null)}
+            >
               {error}
             </Alert>
           )}
           
-          <Paper sx={{ p: 2, mb: 3 }}>
+          <Paper sx={{ 
+            p: 3, 
+            mb: 3, 
+            background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)',
+            borderRadius: 3,
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+            border: '1px solid rgba(59, 130, 246, 0.1)'
+          }}>
             <Stepper activeStep={activeStep} alternativeLabel>
               {steps.map((label, index) => (
                 <Step key={label}>
-                  <StepLabel>{label}</StepLabel>
+                  <StepLabel 
+                    sx={{
+                      '& .MuiStepLabel-label': {
+                        color: index <= activeStep ? '#3B82F6' : '#64748B',
+                        fontWeight: index <= activeStep ? 600 : 400,
+                      },
+                      '& .MuiStepIcon-root': {
+                        color: index <= activeStep ? '#3B82F6' : '#CBD5E1',
+                      }
+                    }}
+                  >
+                    {label}
+                  </StepLabel>
                 </Step>
               ))}
             </Stepper>
@@ -446,12 +446,23 @@ const Dashboard: React.FC = () => {
             {renderStepContent()}
           </Box>
           
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
             <Button
               variant="outlined"
               onClick={handleBack}
               disabled={activeStep === 0}
               startIcon={<ChevronLeftIcon />}
+              sx={{
+                borderRadius: 2,
+                px: 3,
+                py: 1.5,
+                borderColor: '#3B82F6',
+                color: '#3B82F6',
+                '&:hover': {
+                  borderColor: '#2563EB',
+                  backgroundColor: 'rgba(59, 130, 246, 0.04)',
+                }
+              }}
             >
               Back
             </Button>
@@ -460,14 +471,39 @@ const Dashboard: React.FC = () => {
               onClick={handleNext}
               disabled={activeStep === steps.length - 1 || !activeFileId}
               endIcon={<ChevronRightIcon />}
+              sx={{
+                borderRadius: 2,
+                px: 3,
+                py: 1.5,
+                background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+                },
+                '&:disabled': {
+                  background: '#CBD5E1',
+                }
+              }}
             >
               Next
             </Button>
           </Box>
         </Container>
       </Main>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleSnackbarClose} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
-};
-
-export default Dashboard;
+}

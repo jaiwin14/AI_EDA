@@ -4,6 +4,9 @@ import pandas as pd
 import uuid
 from datetime import datetime
 
+import json
+from typing import Optional, Dict, Any
+
 class Database:
     def __init__(self, db_path=None):
         """
@@ -24,22 +27,33 @@ class Database:
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         
         # Initialize the database
+        self.conn = sqlite3.connect(self.db_path)
+        self.cursor = self.conn.cursor()
+        
+        # Initialize the database schema
         self._init_db()
     
     def _init_db(self):
         """
         Initialize the database with required tables if they don't exist
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
+        try:
+            self.conn.execute("BEGIN")
+            self._create_tables()
+            self.conn.commit()
+        except Exception as e:
+            self.conn.rollback()
+            raise e
+    
+    def _create_tables(self):
+        """Create all necessary database tables."""
         # Create table for uploaded files metadata
-        cursor.execute("""
+        self.cursor.execute("""
         CREATE TABLE IF NOT EXISTS uploaded_files (
             id TEXT PRIMARY KEY,
             original_filename TEXT,
             table_name TEXT,
-            upload_time TIMESTAMP,
+            upload_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             file_size INTEGER,
             row_count INTEGER,
             column_count INTEGER,
@@ -47,21 +61,107 @@ class Database:
         )
         """)
         
-        # Create table for cleaned datasets
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS cleaned_datasets (
-            id TEXT PRIMARY KEY,
-            original_file_id TEXT,
-            table_name TEXT,
-            created_at TIMESTAMP,
-            row_count INTEGER,
-            column_count INTEGER,
-            FOREIGN KEY (original_file_id) REFERENCES uploaded_files (id)
+        # Create table for file summaries
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS file_summaries (
+            file_id TEXT PRIMARY KEY,
+            summary_data TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (file_id) REFERENCES uploaded_files (id)
         )
         """)
         
-        conn.commit()
-        conn.close()
+        # Create table for cleaning steps
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS cleaning_steps (
+            id TEXT PRIMARY KEY,
+            file_id TEXT,
+            step_type TEXT,
+            step_details TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (file_id) REFERENCES uploaded_files (id)
+        )
+        """)
+    
+    def save_file_summary(self, file_id: str, summary: Dict[str, Any]) -> None:
+        """
+        Save or update file summary data
+        
+        Parameters:
+        -----------
+        file_id : str
+            The ID of the file
+        summary : dict
+            Summary data to save
+        """
+        try:
+            self.conn.execute("BEGIN")
+            self.cursor.execute("""
+            INSERT OR REPLACE INTO file_summaries (file_id, summary_data)
+            VALUES (?, ?)
+            """, (file_id, json.dumps(summary)))
+            self.conn.commit()
+        except Exception as e:
+            self.conn.rollback()
+            raise e
+    
+    def get_file_summary(self, file_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Retrieve file summary data
+        
+        Parameters:
+        -----------
+        file_id : str
+            The ID of the file
+        
+        Returns:
+        --------
+        dict or None
+            The summary data if found, None otherwise
+        """
+        self.cursor.execute("""
+        SELECT summary_data
+        FROM file_summaries
+        WHERE file_id = ?
+        """, (file_id,))
+        
+        result = self.cursor.fetchone()
+        if result:
+            return json.loads(result[0])
+        return None
+    
+    def add_cleaning_step(self, file_id: str, step_type: str, step_details: Dict[str, Any]) -> None:
+        """
+        Add a cleaning step for a file
+        
+        Parameters:
+        -----------
+        file_id : str
+            The ID of the file
+        step_type : str
+            Type of cleaning step (e.g., 'missing_values', 'outliers')
+        step_details : dict
+            Details of the cleaning step
+        """
+        step_id = str(uuid.uuid4())
+        try:
+            self.conn.execute("BEGIN")
+            self.cursor.execute("""
+            INSERT INTO cleaning_steps (id, file_id, step_type, step_details)
+            VALUES (?, ?, ?, ?)
+            """, (step_id, file_id, step_type, json.dumps(step_details)))
+            self.conn.commit()
+        except Exception as e:
+            self.conn.rollback()
+            raise e
+    
+    def __del__(self):
+        """Clean up database connection"""
+        try:
+            if hasattr(self, 'conn') and self.conn:
+                self.conn.close()
+        except:
+            pass
     
     def save_uploaded_file(self, df, original_filename):
         """
@@ -87,6 +187,19 @@ class Database:
         
         # Connect to the database
         conn = sqlite3.connect(self.db_path)
+        
+        # Ensure all data types are compatible with SQLite
+        # Convert any problematic types before saving
+        for col in df.columns:
+            # Convert any complex numpy types to standard Python types
+            if pd.api.types.is_integer_dtype(df[col]):
+                df[col] = df[col].astype('int64')
+            elif pd.api.types.is_float_dtype(df[col]):
+                df[col] = df[col].astype('float64')
+            elif pd.api.types.is_bool_dtype(df[col]):
+                df[col] = df[col].astype('bool')
+            elif pd.api.types.is_datetime64_dtype(df[col]):
+                df[col] = df[col].astype(str)  # Convert datetime to string for SQLite compatibility
         
         # Save the DataFrame to a table
         df.to_sql(table_name, conn, if_exists='replace', index=False)
