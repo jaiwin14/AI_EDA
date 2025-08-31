@@ -1,8 +1,7 @@
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import base64
-from io import BytesIO
+from .utils import export_plot_as_image
 
 def run(df: pd.DataFrame) -> dict:
     """Generate summary statistics for the dataframe"""
@@ -25,10 +24,7 @@ def run(df: pd.DataFrame) -> dict:
         ])
     )])
     
-    # Convert plot to base64 string
-    buffer = BytesIO()
-    fig.write_image(buffer, format="png")
-    buffer.seek(0)
-    summary["plot"] = base64.b64encode(buffer.getvalue()).decode()
+    # Convert plot to base64 string using utility function
+    summary["plot"] = export_plot_as_image(fig, width=800, height=400)
     
     return summary

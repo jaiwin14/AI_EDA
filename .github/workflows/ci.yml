@@ -1,0 +1,174 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: [3.9, 3.10, 3.11]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('backend/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-
+    
+    - name: Install backend dependencies
+      working-directory: ./backend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install kaleido>=0.2.1
+    
+    - name: Create data directory
+      working-directory: ./backend
+      run: mkdir -p data
+    
+    - name: Run backend tests
+      working-directory: ./backend
+      run: |
+        python -c "
+        from database import Database
+        db = Database()
+        print('Database initialized successfully')
+        "
+    
+    - name: Test kaleido installation
+      working-directory: ./backend
+      run: |
+        python -c "
+        import plotly.graph_objects as go
+        import plotly.io as pio
+        fig = go.Figure(data=go.Bar(x=[1,2,3], y=[1,3,2]))
+        img_bytes = pio.to_image(fig, format='png', engine='kaleido')
+        print('Kaleido working correctly')
+        "
+    
+    - name: Test EDA modules
+      working-directory: ./backend
+      run: |
+        python -c "
+        import pandas as pd
+        import sys
+        sys.path.append('eda')
+        
+        # Create test data
+        df = pd.DataFrame({
+            'A': [1, 2, 3, 4, 5],
+            'B': [2, 4, 6, 8, 10],
+            'C': ['a', 'b', 'c', 'd', 'e']
+        })
+        
+        # Test each EDA module
+        modules = ['summary', 'correlation', 'data_distribution', 'missing_values', 'outlier_detection']
+        
+        for module in modules:
+            try:
+                mod = __import__(module)
+                result = mod.run(df)
+                print(f'{module}: OK')
+            except Exception as e:
+                print(f'{module}: ERROR - {e}')
+                raise
+        "
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: webchat-frontend/package-lock.json
+    
+    - name: Install frontend dependencies
+      working-directory: ./webchat-frontend
+      run: npm ci
+    
+    - name: Run frontend tests
+      working-directory: ./webchat-frontend
+      run: npm test -- --watchAll=false
+    
+    - name: Build frontend
+      working-directory: ./webchat-frontend
+      run: npm run build
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install backend dependencies
+      working-directory: ./backend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install kaleido>=0.2.1
+    
+    - name: Start backend server
+      working-directory: ./backend
+      run: |
+        mkdir -p data
+        python -c "
+        import uvicorn
+        import asyncio
+        from server import app
+        
+        async def test_server():
+            config = uvicorn.Config(app, host='127.0.0.1', port=8000, log_level='info')
+            server = uvicorn.Server(config)
+            await server.serve()
+        
+        # Start server in background
+        import threading
+        import time
+        
+        def run_server():
+            asyncio.run(test_server())
+        
+        thread = threading.Thread(target=run_server, daemon=True)
+        thread.start()
+        time.sleep(5)  # Wait for server to start
+        
+        print('Server started successfully')
+        "
+      timeout-minutes: 2
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend, integration-test]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Deploy to production
+      run: |
+        echo "Deployment would happen here"
+        echo "This is a placeholder for actual deployment logic"

@@ -3,9 +3,8 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import base64
-from io import BytesIO
 from scipy import stats
+from .utils import export_plot_as_image
 
 def run(df: pd.DataFrame) -> dict:
     """Analyze missing values in the dataset and suggest treatment methods"""
@@ -68,10 +67,7 @@ def run(df: pd.DataFrame) -> dict:
         showlegend=False
     )
     
-    # Convert plot to base64 string
-    buffer = BytesIO()
-    fig.write_image(buffer, format="png")
-    buffer.seek(0)
+    # Convert plot to base64 string using utility function
     
     # Analyze patterns and suggest treatment methods
     treatment_suggestions = {}
@@ -140,7 +136,7 @@ def run(df: pd.DataFrame) -> dict:
     
     return {
         "text": "Here's the missing values analysis:",
-        "plot": base64.b64encode(buffer.getvalue()).decode(),
+        "plot": export_plot_as_image(fig, width=800, height=600),
         "data": missing_df.to_dict(),
         "treatment": treatment_info
     }

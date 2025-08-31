@@ -3,8 +3,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import base64
-from io import BytesIO
+from .utils import export_plot_as_image
 
 def run(df: pd.DataFrame) -> dict:
     """Generate distribution plots for numeric columns"""
@@ -40,10 +39,8 @@ def run(df: pd.DataFrame) -> dict:
         showlegend=False
     )
     
-    # Convert plot to base64 string
-    buffer = BytesIO()
-    fig.write_image(buffer, format="png")
-    buffer.seek(0)
+    # Convert plot to base64 string using utility function
+    plot_height = 300 * len(cols_to_plot)
     
     # Calculate basic statistics for each column
     stats = {}
@@ -59,6 +56,6 @@ def run(df: pd.DataFrame) -> dict:
     
     return {
         "text": "Here's the distribution analysis for numeric columns:",
-        "plot": base64.b64encode(buffer.getvalue()).decode(),
+        "plot": export_plot_as_image(fig, width=800, height=plot_height),
         "stats": stats
     }
