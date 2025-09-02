@@ -3,13 +3,15 @@ import os
 import json
 from enum import Enum
 from typing import List, Dict, Any, Optional
+from openai import OpenAI, OpenAIError
 import google.generativeai as genai
 
 class AIProvider(Enum):
     """Enum for supported AI providers"""
+    OPENAI = "openai"
     GEMINI = "gemini"
 
-def generate_insight(prompt: str, context: Dict[str, Any] = None, provider: AIProvider = AIProvider.GEMINI) -> str:
+def generate_insight(prompt: str, context: Dict[str, Any] = None, provider: AIProvider = AIProvider.OPENAI) -> str:
     """
     Generate insights or explanations using AI
     
@@ -35,10 +37,20 @@ def generate_insight(prompt: str, context: Dict[str, Any] = None, provider: AIPr
         complete_prompt += "\n\nContext:\n" + json.dumps(context, indent=2)
     
     try:
-        return _generate_gemini_insight(complete_prompt)
+        if provider == AIProvider.GEMINI:
+            return _generate_gemini_insight(complete_prompt)
+        else:
+            return _generate_openai_insight(complete_prompt)
     except Exception as e:
-        print(f"Error generating insight with Gemini: {str(e)}")
-        return "Unable to generate insight at this time. Please check your Gemini API key configuration."
+        print(f"Error generating insight with {provider.value}: {str(e)}")
+        # Try fallback to other provider if one fails
+        try:
+            other_provider = AIProvider.OPENAI if provider == AIProvider.GEMINI else AIProvider.GEMINI
+            print(f"Attempting fallback to {other_provider.value}")
+            return generate_insight(prompt, context, other_provider)
+        except Exception as e2:
+            print(f"Fallback also failed: {str(e2)}")
+            return "Unable to generate insight at this time."
 
 def _generate_gemini_insight(prompt: str) -> str:
     """Generate insight using Google's Gemini API."""
@@ -61,4 +73,36 @@ def _generate_gemini_insight(prompt: str) -> str:
     except Exception as e:
         raise Exception(f"Gemini API error: {str(e)}")
 
-
+def _generate_openai_insight(prompt: str) -> str:
+    """Generate insight using OpenAI API."""
+    if not os.getenv("OPENAI_API_KEY"):
+        raise ValueError("OpenAI API key not found in environment variables")
+    
+    try:
+        # Initialize OpenAI client
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        
+        # Prepare messages for OpenAI
+        messages = [
+            {
+                "role": "system",
+                "content": """You are an expert data analyst specializing in exploratory data analysis. 
+                Provide clear, concise, and technically accurate insights."""
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+        
+        # Generate response
+        response = client.chat.completions.create(
+            model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
+            messages=messages,
+            temperature=float(os.getenv("TEMPERATURE", "0.7")),
+            max_tokens=int(os.getenv("MAX_TOKENS", "1000"))
+        )
+        
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        raise Exception(f"OpenAI API error: {str(e)}")
