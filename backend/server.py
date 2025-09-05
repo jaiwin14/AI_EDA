@@ -21,14 +21,12 @@ from typing import Dict, Any, Optional, List
 import asyncio
 import io
 from dotenv import load_dotenv
-import openai
-from utils.serialization import serialize_numpy, infer_and_convert_types, to_json_serializable
+from utils.serialization import infer_and_convert_types, to_json_serializable
 
 # Load environment variables
 load_dotenv()
 
-# Initialize OpenAI client
-openai.api_key = os.getenv("OPENAI_API_KEY")
+
 
 # Add the backend directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -133,7 +131,7 @@ async def analyze_missing_values(file_id: str):
         except:
             missing_stats["ai_insights"] = "Unable to generate AI insights at this time."
         
-        return JSONResponse(content=missing_stats)
+        return JSONResponse(content=to_json_serializable(missing_stats))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -205,7 +203,7 @@ async def treat_missing_values(
         raise HTTPException(status_code=400, detail=str(e))
 
 from utils.ai_utils import generate_insight
-from utils.serialization import serialize_numpy, infer_and_convert_types, to_json_serializable
+from utils.serialization import infer_and_convert_types, to_json_serializable
 from backend.routes.analytics import router as analytics_router
 
 # Include analytics routes
@@ -233,17 +231,17 @@ async def upload_file(file: UploadFile = File(...), background_tasks: Background
         summary = {
             "info": {
                 "shape": df.shape,
-                "columns": list(df.columns),
-                "dtypes": df.dtypes.apply(str).to_dict(),
-                "missing_values": df.isnull().sum().to_dict(),
+                "columns": df.columns,
+                "dtypes": df.dtypes,
+                "missing_values": df.isnull().sum(),
                 "memory_usage": df.memory_usage(deep=True).sum(),
-                "data_preview": df.head().to_dict('records')
+                "data_preview": df.head()
             },
-            "describe": to_json_serializable(df.describe(include='all')),
+            "describe": df.describe(include='all'),
             "missing_analysis": {
                 "total_missing": df.isnull().sum().sum(),
-                "missing_by_column": df.isnull().sum().to_dict(),
-                "missing_percentage": (df.isnull().sum() / len(df) * 100).to_dict()
+                "missing_by_column": df.isnull().sum(),
+                "missing_percentage": (df.isnull().sum() / len(df) * 100)
             },
             "numeric_columns": df.select_dtypes(include=['int64', 'float64']).columns.tolist(),
             "categorical_columns": df.select_dtypes(include=['object', 'category', 'bool']).columns.tolist()
@@ -274,12 +272,14 @@ async def upload_file(file: UploadFile = File(...), background_tasks: Background
         # Update file status
         db.update_file_status(file_id, "ready")
         
-        return {
+        response_data = {
             "file_id": file_id, 
             "filename": file.filename, 
             "status": "ready",
             "summary": summary
         }
+        
+        return JSONResponse(content=to_json_serializable(response_data))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

@@ -14,6 +14,7 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  ListItemButton,
   Divider,
   Alert,
   Stepper,
@@ -24,7 +25,7 @@ import {
   CircularProgress,
   Snackbar,
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { styled, Theme } from '@mui/material/styles';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import WarningIcon from '@mui/icons-material/Warning';
@@ -43,10 +44,11 @@ import Correlation from './Correlation';
 
 const drawerWidth = 280;
 
-const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
-  ({ theme, open }: { theme: any; open: boolean }) => ({
+const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{ open?: boolean }>(
+  ({ theme, open }) => ({
     flexGrow: 1,
     padding: theme.spacing(3),
+    paddingTop: `calc(${theme.spacing(3)} + 64px)`, // 64px is the header height
     transition: theme.transitions.create('margin', {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
@@ -72,8 +74,7 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 
 const StyledAppBar = styled(AppBar, {
   shouldForwardProp: (prop) => prop !== 'open',
-})(
-  ({ theme, open }: { theme: any; open: boolean }) => ({
+})<{ open?: boolean }>(({ theme, open }) => ({
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     transition: theme.transitions.create(['margin', 'width'], {
       easing: theme.transitions.easing.sharp,
@@ -209,7 +210,7 @@ export default function Dashboard() {
         );
       case 1:
         return activeFileId ? (
-          <DataSummary fileId={activeFileId} />
+          <DataSummary activeFileId={activeFileId} summaryData={null} websocket={null} runAnalysis={() => {}} />
         ) : (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="h6" color="text.secondary">
@@ -219,7 +220,7 @@ export default function Dashboard() {
         );
       case 2:
         return activeFileId ? (
-          <MissingValues fileId={activeFileId} />
+          <MissingValues activeFileId={activeFileId} missingData={null} websocket={null} runAnalysis={() => {}} />
         ) : (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="h6" color="text.secondary">
@@ -229,7 +230,7 @@ export default function Dashboard() {
         );
       case 3:
         return activeFileId ? (
-          <MissingValuesTreatment fileId={activeFileId} />
+          <MissingValuesTreatment activeFileId={activeFileId} treatmentData={null} websocket={null} onTreatmentApplied={() => {}} />
         ) : (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="h6" color="text.secondary">
@@ -239,7 +240,7 @@ export default function Dashboard() {
         );
       case 4:
         return activeFileId ? (
-          <DataDistribution fileId={activeFileId} />
+          <DataDistribution activeFileId={activeFileId} distributionData={null} websocket={null} runAnalysis={() => {}} />
         ) : (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="h6" color="text.secondary">
@@ -249,7 +250,7 @@ export default function Dashboard() {
         );
       case 5:
         return activeFileId ? (
-          <OutlierDetection fileId={activeFileId} />
+          <OutlierDetection activeFileId={activeFileId} outlierData={null} websocket={null} runAnalysis={() => {}} />
         ) : (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="h6" color="text.secondary">
@@ -259,7 +260,7 @@ export default function Dashboard() {
         );
       case 6:
         return activeFileId ? (
-          <Correlation fileId={activeFileId} />
+          <Correlation activeFileId={activeFileId} correlationData={null} websocket={null} runAnalysis={() => {}} />
         ) : (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="h6" color="text.secondary">
@@ -296,7 +297,7 @@ export default function Dashboard() {
             sx={{ color: 'white', borderColor: 'white' }}
           />
         </Toolbar>
-      </AppBar>
+      </StyledAppBar>
 
       <Drawer
         sx={{
@@ -333,12 +334,12 @@ export default function Dashboard() {
         <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
         <List>
           {steps.map((text, index) => (
-            <ListItem
-              button 
+            <ListItemButton
               key={text} 
               onClick={() => handleStepChange(index)}
-              selected={activeStep === index}
+              divider
               disabled={index > 0 && !activeFileId}
+              selected={activeStep === index}
               sx={{
                 color: 'white',
                 '&:hover': {
@@ -366,7 +367,7 @@ export default function Dashboard() {
                 {index === 6 && <TableChartIcon />}
               </ListItemIcon>
               <ListItemText primary={text} />
-            </ListItem>
+            </ListItemButton>
           ))}
         </List>
         <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />

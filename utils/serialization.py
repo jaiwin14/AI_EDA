@@ -1,27 +1,117 @@
 """Utility functions for data serialization and type conversion."""
+from typing import Any, Dict, List, Union, Optional
 import numpy as np
 import pandas as pd
-from typing import Any, Dict, List, Union
+from datetime import datetime, date, time
 
-def serialize_numpy(obj: Any) -> Union[Dict, List, str, int, float, bool, None]:
-    """Convert numpy types to Python native types for JSON serialization."""
-    if isinstance(obj, (np.int_, np.intc, np.intp, np.int8,
-        np.int16, np.int32, np.int64, np.uint8,
-        np.uint16, np.uint32, np.uint64)):
-        return int(obj)
-    elif isinstance(obj, (np.float_, np.float16, np.float32, np.float64)):
-        return float(obj)
-    elif isinstance(obj, (np.bool_)):
-        return bool(obj)
-    elif isinstance(obj, (np.ndarray,)):
-        return obj.tolist()
-    elif isinstance(obj, pd.Series):
-        return obj.tolist()
-    elif isinstance(obj, pd.DataFrame):
-        return obj.to_dict('records')
-    elif pd.isna(obj):
+JsonSerializable = Union[Dict[str, Any], List[Any], str, int, float, bool, None]
+
+def to_json_serializable(obj: Any) -> JsonSerializable:
+    """
+    Convert any Python/Pandas/Numpy object to JSON serializable format.
+    
+    Handles:
+    - NumPy numeric types (int8-64, uint8-64, float16-64, bool_, complex64/128)
+    - Pandas types (Timestamp, Timedelta, Period, Interval, Categorical)
+    - Missing values (np.nan, pd.NaT, pd.NA, None)
+    - Infinity values (np.inf, -np.inf)
+    - Arrays/Series (np.ndarray, pd.Series)
+    - DataFrames (pd.DataFrame)
+    - Nested structures (dicts, lists)
+    - Native Python types (pass through unchanged)
+
+    Args:
+        obj: Any Python/Pandas/Numpy object
+
+    Returns:
+        JSON serializable object
+
+    Example:
+        >>> to_json_serializable(np.int64(42))
+        42
+        >>> to_json_serializable(pd.Timestamp('2025-01-01'))
+        '2025-01-01T00:00:00'
+        >>> to_json_serializable(np.array([1, 2, 3]))
+        [1, 2, 3]
+    """
+    try:
+        # Handle None and missing values
+        if obj is None or pd.isna(obj):
+            return None
+
+        # Handle numpy numbers (including complex)
+        if isinstance(obj, (np.number, np.bool_)):
+            if isinstance(obj, (np.complex64, np.complex128)):
+                return {"real": obj.real.item(), "imag": obj.imag.item()}
+            return obj.item()
+
+        # Handle infinity values
+        if isinstance(obj, float) and np.isinf(obj):
+            return "Infinity" if obj > 0 else "-Infinity"
+
+        # Handle numpy arrays
+        if isinstance(obj, np.ndarray):
+            return [to_json_serializable(x) for x in obj.tolist()]
+
+        # Handle pandas Series
+        if isinstance(obj, pd.Series):
+            return [to_json_serializable(x) for x in obj.tolist()]
+
+        # Handle pandas DataFrame
+        if isinstance(obj, pd.DataFrame):
+            return [
+                {k: to_json_serializable(v) for k, v in row.items()}
+                for row in obj.to_dict('records')
+            ]
+
+        # Handle pandas Timestamp
+        if isinstance(obj, pd.Timestamp):
+            return obj.isoformat()
+
+        # Handle pandas Timedelta
+        if isinstance(obj, pd.Timedelta):
+            return str(obj)
+
+        # Handle pandas Period
+        if isinstance(obj, pd.Period):
+            return str(obj)
+
+        # Handle pandas Interval
+        if isinstance(obj, pd.Interval):
+            return {"left": to_json_serializable(obj.left), 
+                   "right": to_json_serializable(obj.right),
+                   "closed": obj.closed}
+
+        # Handle pandas Categorical
+        if isinstance(obj, pd.Categorical):
+            return obj.tolist()
+
+        # Handle datetime objects
+        if isinstance(obj, (datetime, date, time)):
+            return obj.isoformat()
+
+        # Handle dictionaries
+        if isinstance(obj, dict):
+            return {k: to_json_serializable(v) for k, v in obj.items()}
+
+        # Handle lists, tuples, and sets
+        if isinstance(obj, (list, tuple, set)):
+            return [to_json_serializable(x) for x in obj]
+
+        # Try to convert to native Python types if possible
+        try:
+            return obj.item() if hasattr(obj, 'item') else obj
+        except (ValueError, AttributeError):
+            # If conversion fails, try string representation
+            try:
+                return str(obj)
+            except Exception:
+                return None
+
+    except Exception as e:
+        # Log error if needed
+        print(f"Error converting {type(obj)} to JSON serializable: {str(e)}")
         return None
-    return obj
 
 def infer_and_convert_types(df: pd.DataFrame) -> pd.DataFrame:
     """Intelligently infer and convert data types using AI-assisted pattern recognition."""
@@ -126,19 +216,5 @@ def infer_and_convert_types(df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
-def to_json_serializable(data: Any) -> Any:
-    """Convert any data structure to JSON serializable format."""
-    if isinstance(data, (pd.DataFrame, pd.Series)):
-        return serialize_numpy(data)
-    elif isinstance(data, dict):
-        return {k: to_json_serializable(v) for k, v in data.items()}
-    elif isinstance(data, list):
-        return [to_json_serializable(v) for v in data]
-    elif isinstance(data, np.ndarray):
-        return data.tolist()
-    elif isinstance(data, (np.integer, np.floating, np.bool_)):
-        return data.item()
-    elif pd.isna(data):
-        return None
-    else:
-        return serialize_numpy(data)
+# Alias for backward compatibility
+serialize_numpy = to_json_serializable
