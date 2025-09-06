@@ -69,7 +69,8 @@ export default function ChatInterface({ file, fileId, onAnalysisRequest, analysi
 
   useEffect(() => {
     // Connect to WebSocket
-    const websocket = new WebSocket('ws://localhost:8000/ws');
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
+    const websocket = new WebSocket(wsUrl);
     
     websocket.onopen = () => {
       console.log('Connected to WebSocket');

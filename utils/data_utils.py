@@ -32,7 +32,7 @@ def prepare_dataframe_summary(df: pd.DataFrame) -> Dict[str, Any]:
             row_dict = {}
             for col in preview_df.columns:
                 val = row[col]
-                if pd.isna(val) or (isinstance(val, float) and np.isnan(val)):
+                if (pd.isna(val) if not hasattr(pd.isna(val), '__len__') else pd.isna(val).any()) or (isinstance(val, float) and np.isnan(val)):
                     row_dict[str(col)] = None
                 else:
                     row_dict[str(col)] = to_json_serializable(val)
@@ -47,7 +47,7 @@ def prepare_dataframe_summary(df: pd.DataFrame) -> Dict[str, Any]:
             col_stats = {}
             for stat in desc_df.index:
                 val = desc_df[col][stat]
-                if pd.isna(val) or (isinstance(val, float) and np.isnan(val)):
+                if (pd.isna(val) if not hasattr(pd.isna(val), '__len__') else pd.isna(val).any()) or (isinstance(val, float) and np.isnan(val)):
                     col_stats[stat] = None
                 else:
                     col_stats[stat] = to_json_serializable(val)

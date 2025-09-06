@@ -23,10 +23,8 @@ def configure_gemini() -> Optional[str]:
         
         # List of supported models in order of preference
         supported_models = [
-            "gemini-pro",
-            "gemini-1.5-pro",
-            "gemini-1.5-flash",
-            "gemini-1.0-pro"
+            "models/gemini-1.5-flash",
+            "models/gemini-2.5-flash-preview",
         ]
         
         # Find the first available supported model
@@ -77,7 +75,7 @@ def generate_insight(prompt: str, context: Dict[str, Any] = None) -> str:
     try:
         # Initialize Gemini model with safety settings
         model = genai.GenerativeModel(
-            model_name=os.getenv('GEMINI_MODEL', 'gemini-1.5-flash'),
+            model_name=os.getenv('GEMINI_MODEL', 'models/gemini-1.5-flash'),
             generation_config={
                 'temperature': float(os.getenv('TEMPERATURE', '0.7')),
                 'top_p': 0.8,

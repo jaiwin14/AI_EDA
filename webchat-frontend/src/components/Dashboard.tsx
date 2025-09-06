@@ -108,20 +108,59 @@ export default function Dashboard() {
   const [activeFileId, setActiveFileId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [websocket, setWebsocket] = useState<WebSocket | null>(null);
+  const [analysisData, setAnalysisData] = useState<any>({});
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
     severity: 'success' | 'error' | 'info';
   }>({ open: false, message: '', severity: 'info' });
 
-  // Test backend connection on component mount
+  // Test backend connection and setup WebSocket on component mount
   useEffect(() => {
     testBackendConnection();
+    setupWebSocket();
+    
+    return () => {
+      if (websocket) {
+        websocket.close();
+      }
+    };
   }, []);
+
+  const setupWebSocket = () => {
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
+    const ws = new WebSocket(wsUrl);
+    
+    ws.onopen = () => {
+      console.log('WebSocket connected');
+      setWebsocket(ws);
+    };
+    
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'result') {
+        setAnalysisData((prev: any) => ({
+          ...prev,
+          [data.function]: data
+        }));
+      }
+    };
+    
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+    
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      setWebsocket(null);
+    };
+  };
 
   const testBackendConnection = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/functions`);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/functions`);
       setIsConnected(response.ok);
     } catch (error) {
       setIsConnected(false);
@@ -139,6 +178,18 @@ export default function Dashboard() {
     setActiveStep(1);
     setError(null);
     showSnackbar('File uploaded successfully!', 'success');
+  };
+
+  const runAnalysis = (functionName: string) => {
+    if (!websocket || !activeFileId) return;
+    
+    const message = {
+      action: 'run_analysis',
+      function: functionName,
+      file_id: activeFileId
+    };
+    
+    websocket.send(JSON.stringify(message));
   };
 
   const handleNext = () => {
@@ -210,7 +261,12 @@ export default function Dashboard() {
         );
       case 1:
         return activeFileId ? (
-          <DataSummary activeFileId={activeFileId} summaryData={null} websocket={null} runAnalysis={() => {}} />
+          <DataSummary 
+            activeFileId={activeFileId} 
+            summaryData={analysisData.summary} 
+            websocket={websocket} 
+            runAnalysis={() => runAnalysis('summary')} 
+          />
         ) : (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="h6" color="text.secondary">
@@ -220,7 +276,12 @@ export default function Dashboard() {
         );
       case 2:
         return activeFileId ? (
-          <MissingValues activeFileId={activeFileId} missingData={null} websocket={null} runAnalysis={() => {}} />
+          <MissingValues 
+            activeFileId={activeFileId} 
+            missingData={analysisData.missing_values} 
+            websocket={websocket} 
+            runAnalysis={() => runAnalysis('missing_values')} 
+          />
         ) : (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="h6" color="text.secondary">
@@ -230,7 +291,15 @@ export default function Dashboard() {
         );
       case 3:
         return activeFileId ? (
-          <MissingValuesTreatment activeFileId={activeFileId} treatmentData={null} websocket={null} onTreatmentApplied={() => {}} />
+          <MissingValuesTreatment 
+            activeFileId={activeFileId} 
+            treatmentData={analysisData.missing_values} 
+            websocket={websocket} 
+            onTreatmentApplied={(fileId) => {
+              setActiveFileId(fileId);
+              showSnackbar('Missing values treatment applied!', 'success');
+            }} 
+          />
         ) : (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="h6" color="text.secondary">
@@ -240,7 +309,12 @@ export default function Dashboard() {
         );
       case 4:
         return activeFileId ? (
-          <DataDistribution activeFileId={activeFileId} distributionData={null} websocket={null} runAnalysis={() => {}} />
+          <DataDistribution 
+            activeFileId={activeFileId} 
+            distributionData={analysisData.data_distribution} 
+            websocket={websocket} 
+            runAnalysis={() => runAnalysis('data_distribution')} 
+          />
         ) : (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="h6" color="text.secondary">
@@ -250,7 +324,12 @@ export default function Dashboard() {
         );
       case 5:
         return activeFileId ? (
-          <OutlierDetection activeFileId={activeFileId} outlierData={null} websocket={null} runAnalysis={() => {}} />
+          <OutlierDetection 
+            activeFileId={activeFileId} 
+            outlierData={analysisData.outlier_detection} 
+            websocket={websocket} 
+            runAnalysis={() => runAnalysis('outlier_detection')} 
+          />
         ) : (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="h6" color="text.secondary">
@@ -260,7 +339,12 @@ export default function Dashboard() {
         );
       case 6:
         return activeFileId ? (
-          <Correlation activeFileId={activeFileId} correlationData={null} websocket={null} runAnalysis={() => {}} />
+          <Correlation 
+            activeFileId={activeFileId} 
+            correlationData={analysisData.correlation} 
+            websocket={websocket} 
+            runAnalysis={() => runAnalysis('correlation')} 
+          />
         ) : (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="h6" color="text.secondary">

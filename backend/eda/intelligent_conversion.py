@@ -135,7 +135,9 @@ def run(df, params=None):
                     
                     # Case-insensitive mapping
                     lower_values = df[column].astype(str).str.lower()
-                    if all(val in bool_map for val in lower_values.unique() if not pd.isna(val)):
+                    unique_vals = lower_values.unique()
+                    non_null_vals = [val for val in unique_vals if not (pd.isna(val) if not hasattr(pd.isna(val), '__len__') else pd.isna(val).any())]
+                    if all(val in bool_map for val in non_null_vals):
                         df_converted[column] = lower_values.map(bool_map)
                         conversion_details[column]['conversion_applied'] = 'boolean'
                         conversion_details[column]['new_type'] = str(df_converted[column].dtype)

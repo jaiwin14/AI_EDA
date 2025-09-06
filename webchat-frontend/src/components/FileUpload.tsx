@@ -55,7 +55,8 @@ export default function FileUpload({ onFileUploaded }: FileUploadProps) {
     formData.append('file', file);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/upload`, {
         method: 'POST',
         body: formData,
       });

@@ -11,8 +11,16 @@ class JSONSerializer:
         if value is None:
             return None
             
-        if pd.isna(value) or pd.isnull(value):
-            return None
+        # Handle different types of null/NaN values
+        if hasattr(value, '__len__') and not isinstance(value, (str, bytes)):
+            # For arrays/Series, check if any values are null
+            if hasattr(pd.isna(value), 'any'):
+                if pd.isna(value).any():
+                    return None
+        else:
+            # For scalar values, check directly
+            if pd.isna(value):
+                return None
             
         if isinstance(value, (np.integer, np.int64)):
             return int(value)
@@ -213,8 +221,8 @@ def infer_and_convert_types(df: pd.DataFrame) -> pd.DataFrame:
                             # Use the one that parsed more successfully
                             datetime_series = us_format if us_format.notna().sum() > uk_format.notna().sum() else uk_format
                     else:
-                        # As a last resort, use the flexible parser
-                        datetime_series = pd.to_datetime(df[column], errors='coerce')
+                        # As a last resort, use the flexible parser with format specification
+                        datetime_series = pd.to_datetime(df[column], errors='coerce', format='mixed')
                     
                     if datetime_series.notna().mean() > 0.8:
                         df[column] = datetime_series
