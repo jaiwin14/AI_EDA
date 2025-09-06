@@ -3,7 +3,6 @@ from typing import Dict, Any, Optional, List
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from utils.serialization_fixed import to_json_serializable
 
 def prepare_dataframe_summary(df: pd.DataFrame) -> Dict[str, Any]:
     """
@@ -25,7 +24,7 @@ def prepare_dataframe_summary(df: pd.DataFrame) -> Dict[str, Any]:
             "missing_percentage": df.isnull().sum().div(len(df)).mul(100).round(2).to_dict()
         }
 
-        # Data preview with safe serialization
+        # Data preview with direct primitive type conversion
         preview_df = df.head()
         preview_data = []
         for _, row in preview_df.iterrows():
@@ -35,7 +34,19 @@ def prepare_dataframe_summary(df: pd.DataFrame) -> Dict[str, Any]:
                 if (pd.isna(val) if not hasattr(pd.isna(val), '__len__') else pd.isna(val).any()) or (isinstance(val, float) and np.isnan(val)):
                     row_dict[str(col)] = None
                 else:
-                    row_dict[str(col)] = to_json_serializable(val)
+                    # Convert to primitive types directly
+                    if isinstance(val, (int, float, bool)):
+                        row_dict[str(col)] = val
+                    elif isinstance(val, (np.integer, np.int64, np.int32, np.int16, np.int8)):
+                        row_dict[str(col)] = int(val)
+                    elif isinstance(val, (np.floating, np.float64, np.float32, np.float16)):
+                        row_dict[str(col)] = float(val)
+                    elif isinstance(val, (np.bool_)):
+                        row_dict[str(col)] = bool(val)
+                    elif isinstance(val, (datetime, pd.Timestamp)):
+                        row_dict[str(col)] = val.isoformat()
+                    else:
+                        row_dict[str(col)] = str(val)
             preview_data.append(row_dict)
 
         info["data_preview"] = preview_data
@@ -50,7 +61,19 @@ def prepare_dataframe_summary(df: pd.DataFrame) -> Dict[str, Any]:
                 if (pd.isna(val) if not hasattr(pd.isna(val), '__len__') else pd.isna(val).any()) or (isinstance(val, float) and np.isnan(val)):
                     col_stats[stat] = None
                 else:
-                    col_stats[stat] = to_json_serializable(val)
+                    # Convert to primitive types directly
+                    if isinstance(val, (int, float, bool)):
+                        col_stats[stat] = val
+                    elif isinstance(val, (np.integer, np.int64, np.int32, np.int16, np.int8)):
+                        col_stats[stat] = int(val)
+                    elif isinstance(val, (np.floating, np.float64, np.float32, np.float16)):
+                        col_stats[stat] = float(val)
+                    elif isinstance(val, (np.bool_)):
+                        col_stats[stat] = bool(val)
+                    elif isinstance(val, (datetime, pd.Timestamp)):
+                        col_stats[stat] = val.isoformat()
+                    else:
+                        col_stats[stat] = str(val)
             description[str(col)] = col_stats
 
         # Column type categorization

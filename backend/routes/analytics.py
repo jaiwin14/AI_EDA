@@ -10,7 +10,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 from database import Database
 from utils.ai_utils import generate_insight
-from utils.serialization_fixed import to_json_serializable
 
 router = APIRouter()
 db = Database()
@@ -37,7 +36,7 @@ def detect_outliers(data: pd.Series, method: str = "both") -> dict:
         z_outliers = data[z_scores > 3]
         results["zscore"] = {
             "outliers": z_outliers.index.tolist(),
-            "z_scores": to_json_serializable(z_scores)
+            "z_scores": z_scores.tolist()
         }
     
     return results
@@ -82,7 +81,7 @@ async def univariate_analysis(file_id: str):
             
             results[column] = analysis
         
-        return JSONResponse(content=to_json_serializable(results))
+        return JSONResponse(content=results)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -134,7 +133,7 @@ async def bivariate_analysis(file_id: str, column1: str, column2: str):
                 "group_stats": df.groupby(cat_col)[num_col].describe().to_dict()
             })
         
-        return JSONResponse(content=to_json_serializable(results))
+        return JSONResponse(content=results)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -167,7 +166,7 @@ async def correlation_analysis(file_id: str):
         correlations.sort(key=lambda x: abs(x["correlation"]), reverse=True)
         
         results = {
-            "correlation_matrix": to_json_serializable(correlation_matrix),
+            "correlation_matrix": correlation_matrix.to_dict(),
             "heatmap": heatmap.to_json(),
             "top_correlations": correlations[:5]
         }
@@ -236,7 +235,7 @@ async def outlier_analysis(file_id: str, method: str = "both", columns: List[str
         except:
             results["ai_insights"] = "Unable to generate AI insights at this time."
         
-        return JSONResponse(content=to_json_serializable(results))
+        return JSONResponse(content=results)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
