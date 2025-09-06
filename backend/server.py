@@ -21,12 +21,11 @@ from typing import Dict, Any, Optional, List
 import asyncio
 import io
 from dotenv import load_dotenv
-from utils.serialization import infer_and_convert_types, to_json_serializable
+from utils.serialization_fixed import infer_and_convert_types, to_json_serializable
+from utils.data_loader import prepare_dataframe, create_dataframe_summary
 
 # Load environment variables
 load_dotenv()
-
-
 
 # Add the backend directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -203,7 +202,7 @@ async def treat_missing_values(
         raise HTTPException(status_code=400, detail=str(e))
 
 from utils.ai_utils import generate_insight
-from utils.serialization import infer_and_convert_types, to_json_serializable
+from utils.serialization_fixed import infer_and_convert_types, to_json_serializable
 from backend.routes.analytics import router as analytics_router
 
 # Include analytics routes
@@ -217,35 +216,28 @@ async def upload_file(file: UploadFile = File(...), background_tasks: Background
         content = await file.read()
         
         # Determine file type and read accordingly
-        if file.filename.endswith('.csv'):
+        if file.filename.lower().endswith('.csv'):
             df = pd.read_csv(io.BytesIO(content))
-        elif file.filename.endswith(('.xls', '.xlsx')):
+        elif file.filename.lower().endswith(('.xls', '.xlsx')):
             df = pd.read_excel(io.BytesIO(content))
         else:
-            raise HTTPException(status_code=400, detail="Unsupported file format. Please upload a CSV or Excel file.")
+            raise HTTPException(
+                status_code=400,
+                detail="Unsupported file format. Please upload a CSV or Excel file."
+            )
+            
+        if df.empty:
+            raise HTTPException(
+                status_code=400,
+                detail="The uploaded file is empty."
+            )
         
         # Infer and convert data types
         df = infer_and_convert_types(df)
         
-        # Generate summary statistics
-        summary = {
-            "info": {
-                "shape": df.shape,
-                "columns": df.columns,
-                "dtypes": df.dtypes,
-                "missing_values": df.isnull().sum(),
-                "memory_usage": df.memory_usage(deep=True).sum(),
-                "data_preview": df.head()
-            },
-            "describe": df.describe(include='all'),
-            "missing_analysis": {
-                "total_missing": df.isnull().sum().sum(),
-                "missing_by_column": df.isnull().sum(),
-                "missing_percentage": (df.isnull().sum() / len(df) * 100)
-            },
-            "numeric_columns": df.select_dtypes(include=['int64', 'float64']).columns.tolist(),
-            "categorical_columns": df.select_dtypes(include=['object', 'category', 'bool']).columns.tolist()
-        }
+        # Prepare DataFrame and generate summary
+        df = prepare_dataframe(df)
+        summary = create_dataframe_summary(df)
         
         # Generate AI insights about the dataset
         insight_prompt = f"""
@@ -279,7 +271,12 @@ async def upload_file(file: UploadFile = File(...), background_tasks: Background
             "summary": summary
         }
         
-        return JSONResponse(content=to_json_serializable(response_data))
+        return JSONResponse(content=to_json_serializable({
+            "file_id": str(file_id),
+            "filename": str(file.filename),
+            "status": "success",
+            "summary": summary
+        }))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

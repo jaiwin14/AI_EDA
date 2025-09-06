@@ -30,8 +30,8 @@ def test_imports():
         from utils.ai_utils import generate_insight, AIProvider
         print("✅ utils.ai_utils imported successfully")
         
-        from utils.serialization import serialize_numpy, infer_and_convert_types, to_json_serializable
-        print("✅ utils.serialization imported successfully")
+        from utils.serialization_fixed import serialize_numpy, infer_and_convert_types, to_json_serializable
+        print("✅ utils.serialization_fixed imported successfully")
         
         from backend.database import Database
         print("✅ backend.database imported successfully")

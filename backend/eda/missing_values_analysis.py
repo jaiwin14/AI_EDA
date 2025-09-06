@@ -10,7 +10,7 @@ import sys
 
 # Add the project root to the path so we can import from utils
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-from utils.ai_utils import generate_insight, AIProvider
+from utils.ai_utils import generate_insight
 
 def run(df, params=None):
     """
@@ -168,7 +168,7 @@ def run(df, params=None):
     """
     
     try:
-        ai_insights = generate_insight(insight_prompt, context=missing_stats, provider=AIProvider.GEMINI)
+        ai_insights = generate_insight(insight_prompt, context=missing_stats)
     except Exception as e:
         ai_insights = f"Unable to generate AI insights: {str(e)}"
     

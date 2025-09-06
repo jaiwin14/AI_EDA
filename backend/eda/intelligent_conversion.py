@@ -6,7 +6,7 @@ import sys
 
 # Add the project root to the path so we can import from utils
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-from utils.ai_utils import generate_insight, AIProvider
+from utils.ai_utils import generate_insight
 
 def run(df, params=None):
     """
@@ -66,12 +66,18 @@ def run(df, params=None):
                 cleaned_values = cleaned_values.str.replace('%', '')
                 
                 # Try European format (1.888,00) -> 1888.00
-                if any(',' in str(val) and '.' in str(val) for val in sample_values):
+                # Check for values containing both separators
+                separator_count = cleaned_values.str.count('[,.]').fillna(0)
+                multiple_separators = (separator_count >= 2)
+                
+                if multiple_separators.any():
                     # Check if it's likely European format
                     european_format = False
                     for val in sample_values:
-                        if isinstance(val, str) and ',' in val and '.' in val:
-                            if val.rindex(',') > val.rindex('.'):
+                        if isinstance(val, str):
+                            comma_idx = val.rfind(',')
+                            dot_idx = val.rfind('.')
+                            if comma_idx != -1 and dot_idx != -1 and comma_idx > dot_idx:
                                 european_format = True
                                 break
                     
@@ -79,16 +85,18 @@ def run(df, params=None):
                         # Convert European format to US format
                         temp_values = cleaned_values.str.replace('.', '')
                         temp_values = temp_values.str.replace(',', '.')
-                        if pd.to_numeric(temp_values, errors='coerce').notna().all():
-                            df_converted[column] = pd.to_numeric(temp_values, errors='coerce')
+                        numeric_vals = pd.to_numeric(temp_values, errors='coerce')
+                        if numeric_vals.notna().mean() > 0.8:  # If more than 80% are valid numbers
+                            df_converted[column] = numeric_vals
                             conversion_details[column]['conversion_applied'] = 'European numeric format'
                             conversion_details[column]['new_type'] = str(df_converted[column].dtype)
                             continue
                 
                 # Standard US format (1,888.00) -> 1888.00
                 temp_values = cleaned_values.str.replace(',', '')
-                if pd.to_numeric(temp_values, errors='coerce').notna().all():
-                    df_converted[column] = pd.to_numeric(temp_values, errors='coerce')
+                numeric_vals = pd.to_numeric(temp_values, errors='coerce')
+                if numeric_vals.notna().mean() > 0.8:  # If more than 80% are valid numbers
+                    df_converted[column] = numeric_vals
                     conversion_details[column]['conversion_applied'] = 'US numeric format'
                     conversion_details[column]['new_type'] = str(df_converted[column].dtype)
                     continue
@@ -172,7 +180,7 @@ def run(df, params=None):
     """
     
     try:
-        ai_insights = generate_insight(insight_prompt, context=conversion_details, provider=AIProvider.GEMINI)
+        ai_insights = generate_insight(insight_prompt, context=conversion_details)
     except Exception as e:
         ai_insights = f"Unable to generate AI insights: {str(e)}"
     

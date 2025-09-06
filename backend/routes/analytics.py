@@ -3,13 +3,14 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 import pandas as pd
 import numpy as np
+import datetime
 from typing import List, Dict, Any, Optional
 from scipy import stats
 import plotly.express as px
 import plotly.graph_objects as go
 from database import Database
 from utils.ai_utils import generate_insight
-from utils.serialization import to_json_serializable
+from utils.serialization_fixed import to_json_serializable
 
 router = APIRouter()
 db = Database()

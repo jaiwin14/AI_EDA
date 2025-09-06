@@ -121,7 +121,7 @@ export default function Dashboard() {
 
   const testBackendConnection = async () => {
     try {
-      const response = await fetch('http://localhost:8000/functions');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/functions`);
       setIsConnected(response.ok);
     } catch (error) {
       setIsConnected(false);

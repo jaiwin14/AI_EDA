@@ -7,7 +7,7 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 from utils.ai_utils import generate_insight
-from utils.serialization import to_json_serializable
+from utils.serialization_fixed import to_json_serializable
 
 def run(df: pd.DataFrame) -> Dict[str, Any]:
     """

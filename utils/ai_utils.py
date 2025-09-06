@@ -1,19 +1,51 @@
 """AI utilities for generating insights and explanations."""
 import os
 import json
-from enum import Enum
-from typing import List, Dict, Any, Optional
-from openai import OpenAI, OpenAIError
+from typing import Dict, Any, Optional
 import google.generativeai as genai
+from dotenv import load_dotenv
 
-class AIProvider(Enum):
-    """Enum for supported AI providers"""
-    OPENAI = "openai"
-    GEMINI = "gemini"
+# Load environment variables
+load_dotenv()
 
-def generate_insight(prompt: str, context: Dict[str, Any] = None, provider: AIProvider = AIProvider.OPENAI) -> str:
+def configure_gemini() -> Optional[str]:
+    """Configure Gemini API and validate the setup."""
+    api_key = os.getenv('GEMINI_API_KEY')
+    if not api_key:
+        return "Gemini API key not found in environment variables"
+    
+    try:
+        genai.configure(api_key=api_key)
+        # Get available models
+        model_list = genai.list_models()
+        # Get all available models
+        model_names = {model.name for model in model_list}
+        
+        # List of supported models in order of preference
+        supported_models = [
+            "gemini-pro",
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
+            "gemini-1.0-pro"
+        ]
+        
+        # Find the first available supported model
+        selected_model = next((model for model in supported_models if model in model_names), None)
+        
+        if selected_model:
+            print(f"Using Gemini model: {selected_model}")
+            os.environ['GEMINI_MODEL'] = selected_model
+            return None
+        else:
+            available_models = ", ".join(model_names)
+            return f"No suitable Gemini model available. Available models: {available_models}"
+        return None
+    except Exception as e:
+        return f"Error configuring Gemini API: {str(e)}"
+
+def generate_insight(prompt: str, context: Dict[str, Any] = None) -> str:
     """
-    Generate insights or explanations using AI
+    Generate insights or explanations using Gemini AI
     
     Parameters:
     -----------
@@ -36,73 +68,50 @@ def generate_insight(prompt: str, context: Dict[str, Any] = None, provider: AIPr
     if context:
         complete_prompt += "\n\nContext:\n" + json.dumps(context, indent=2)
     
-    try:
-        if provider == AIProvider.GEMINI:
-            return _generate_gemini_insight(complete_prompt)
-        else:
-            return _generate_openai_insight(complete_prompt)
-    except Exception as e:
-        print(f"Error generating insight with {provider.value}: {str(e)}")
-        # Try fallback to other provider if one fails
-        try:
-            other_provider = AIProvider.OPENAI if provider == AIProvider.GEMINI else AIProvider.GEMINI
-            print(f"Attempting fallback to {other_provider.value}")
-            return generate_insight(prompt, context, other_provider)
-        except Exception as e2:
-            print(f"Fallback also failed: {str(e2)}")
-            return "Unable to generate insight at this time."
+    # Verify Gemini configuration
+    config_error = configure_gemini()
+    if config_error:
+        print(f"Gemini configuration error: {config_error}")
+        return "Unable to generate insights: Gemini API not properly configured"
 
-def _generate_gemini_insight(prompt: str) -> str:
-    """Generate insight using Google's Gemini API."""
-    if not os.getenv("GEMINI_API_KEY"):
-        raise ValueError("Gemini API key not found in environment variables")
-    
     try:
-        # Configure the model
+        # Initialize Gemini model with safety settings
         model = genai.GenerativeModel(
-            model_name=os.getenv("GEMINI_MODEL", "gemini-pro"),
+            model_name=os.getenv('GEMINI_MODEL', 'gemini-1.5-flash'),
             generation_config={
-                "temperature": float(os.getenv("TEMPERATURE", "0.7")),
-                "max_output_tokens": int(os.getenv("MAX_TOKENS", "1000")),
-            }
-        )
-        
-        # Generate response
-        response = model.generate_content(prompt)
-        return response.text.strip()
-    except Exception as e:
-        raise Exception(f"Gemini API error: {str(e)}")
-
-def _generate_openai_insight(prompt: str) -> str:
-    """Generate insight using OpenAI API."""
-    if not os.getenv("OPENAI_API_KEY"):
-        raise ValueError("OpenAI API key not found in environment variables")
-    
-    try:
-        # Initialize OpenAI client
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        
-        # Prepare messages for OpenAI
-        messages = [
-            {
-                "role": "system",
-                "content": """You are an expert data analyst specializing in exploratory data analysis. 
-                Provide clear, concise, and technically accurate insights."""
+                'temperature': float(os.getenv('TEMPERATURE', '0.7')),
+                'top_p': 0.8,
+                'top_k': 40,
+                'max_output_tokens': int(os.getenv('MAX_TOKENS', '1024')),
             },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-        
-        # Generate response
-        response = client.chat.completions.create(
-            model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
-            messages=messages,
-            temperature=float(os.getenv("TEMPERATURE", "0.7")),
-            max_tokens=int(os.getenv("MAX_TOKENS", "1000"))
+            safety_settings=[
+                {
+                    "category": "HARM_CATEGORY_HARASSMENT",
+                    "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+                },
+                {
+                    "category": "HARM_CATEGORY_HATE_SPEECH",
+                    "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+                }
+            ]
         )
         
-        return response.choices[0].message.content.strip()
+        # Generate response
+        response = model.generate_content(complete_prompt)
+        
+        if response and hasattr(response, 'text'):
+            return response.text.strip()
+        else:
+            return "Unable to generate insights: No response from Gemini"
+            
     except Exception as e:
-        raise Exception(f"OpenAI API error: {str(e)}")
+        error_msg = str(e)
+        print(f"Error generating insight with Gemini: {error_msg}")
+        
+        if "API key not found" in error_msg:
+            return "Unable to generate insights: Missing Gemini API key"
+        elif "model not found" in error_msg:
+            return "Unable to generate insights: Gemini Pro model not available"
+        else:
+            return f"Unable to generate insights: {error_msg}"
+        
