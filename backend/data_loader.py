@@ -10,10 +10,11 @@ class DataLoader:
     def __init__(self, db_path: Optional[str] = None):
         """Initialize the data loader with database connection."""
         if db_path is None:
-            self.db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'eda.db')
+            self.db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'db', 'data', 'eda.db')
         else:
             self.db_path = db_path
-            
+            print("path=",db_path)
+        
         # Ensure the directory exists
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         

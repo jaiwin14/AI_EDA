@@ -19,7 +19,7 @@ class Database:
         """
         if db_path is None:
             # Use default path in the project directory
-            self.db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'eda.db')
+            self.db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'db', 'data', 'eda.db')
         else:
             self.db_path = db_path
             

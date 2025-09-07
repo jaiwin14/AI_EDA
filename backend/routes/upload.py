@@ -1,28 +1,18 @@
 """Backend server module with direct CSV to database handling."""
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 import os
 import pandas as pd
 from datetime import datetime
-from data_loader import DataLoader
+from backend.data_loader import DataLoader
 from typing import Dict, Any, Optional
 
-app = FastAPI()
-
-# Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+router = APIRouter()
 
 # Initialize data loader
 data_loader = DataLoader()
 
-@app.post("/upload")
+@router.post("/upload")
 async def upload_file(file: UploadFile = File(...)) -> Dict[str, Any]:
     """
     Handle file upload and load directly into database.
@@ -52,7 +42,7 @@ async def upload_file(file: UploadFile = File(...)) -> Dict[str, Any]:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/data/{table_name}")
+@router.get("/data/{table_name}")
 async def get_data(table_name: str, limit: int = 1000) -> Dict[str, Any]:
     """
     Retrieve data from a specific table.
@@ -67,7 +57,7 @@ async def get_data(table_name: str, limit: int = 1000) -> Dict[str, Any]:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/table_info/{table_name}")
+@router.get("/table_info/{table_name}")
 async def get_table_info(table_name: str) -> Dict[str, Any]:
     """
     Get information about a specific table.

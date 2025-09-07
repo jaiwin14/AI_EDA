@@ -30,10 +30,12 @@ load_dotenv()
 # Add the backend directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import our new database handler
+# Import our new database handler and routes
 from database import Database
+from routes.upload import router as upload_router
 
 app = FastAPI(title="AI EDA API", description="API for AI-powered Exploratory Data Analysis")
+app.include_router(upload_router, prefix="/api", tags=["Upload"])
 
 # Enable CORS
 app.add_middleware(
