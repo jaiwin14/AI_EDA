@@ -18,6 +18,7 @@ from app.core.config import settings
 from app.core.database import db_manager, local_storage
 from app.ml.data_validator import DataValidator
 from app.utils.file_utils import save_upload_file, get_file_info
+from app.utils.json_utils import serialize_for_json
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -78,16 +79,16 @@ async def upload_dataset(
                 detail=f"Dataset validation failed: {validation_results['errors']}"
             )
         
-        # Get dataset metadata
-        metadata = {
-            "shape": df.shape,
+        # Get dataset metadata with JSON serialization fixes
+        metadata = serialize_for_json({
+            "shape": [df.shape[0], df.shape[1]],
             "columns": list(df.columns),
             "dtypes": df.dtypes.astype(str).to_dict(),
             "missing_values": df.isnull().sum().to_dict(),
             "memory_usage": df.memory_usage(deep=True).sum(),
             "validation_results": validation_results,
             "upload_timestamp": datetime.utcnow().isoformat()
-        }
+        })
         
         # Save metadata to database
         db_dataset_id = await db_manager.save_dataset_metadata(
@@ -137,7 +138,7 @@ async def upload_dataset(
             detail=f"Upload processing failed: {str(e)}"
         )
 
-@router.get("/datasets")
+@router.get("/upload/datasets")
 async def list_datasets() -> List[Dict[str, Any]]:
     """List all uploaded datasets"""
     
@@ -178,7 +179,7 @@ async def list_datasets() -> List[Dict[str, Any]]:
             detail="Failed to list datasets"
         )
 
-@router.get("/datasets/{dataset_id}")
+@router.get("/upload/datasets/{dataset_id}")
 async def get_dataset_info(dataset_id: str) -> Dict[str, Any]:
     """Get detailed information about a specific dataset"""
     
@@ -197,7 +198,7 @@ async def get_dataset_info(dataset_id: str) -> Dict[str, Any]:
     
     return metadata
 
-@router.delete("/datasets/{dataset_id}")
+@router.delete("/upload/datasets/{dataset_id}")
 async def delete_dataset(dataset_id: str) -> Dict[str, str]:
     """Delete a dataset and all associated files"""
     

@@ -13,6 +13,7 @@ from typing import Dict, Any, List, Optional
 import json
 
 from app.core.config import settings
+from app.utils.json_utils import serialize_for_json
 from app.core.database import db_manager, local_storage
 from app.ml.eda_pipeline import EDAProcessor
 from app.ml.visualization_generator import VisualizationGenerator
@@ -151,27 +152,17 @@ async def get_eda_results(
         results = await db_manager.get_eda_results(dataset_id, analysis_type)
         
         if not results:
-            # Fallback to local storage
-            if analysis_type:
-                local_results = local_storage.load_json(f"eda_{dataset_id}_{analysis_type}")
-                if local_results:
-                    results = [local_results]
-            else:
-                # Load all available analyses
-                results = []
-                for analysis in ['basic_statistics', 'missing_values', 'correlations', 'outliers', 'distributions']:
-                    local_result = local_storage.load_json(f"eda_{dataset_id}_{analysis}")
-                    if local_result:
-                        results.append({
-                            "analysis_type": analysis,
-                            "results": local_result
-                        })
-        
-        if not results:
-            raise HTTPException(
-                status_code=404,
-                detail="No EDA results found for this dataset"
-            )
+            # If no results found, return empty structure instead of 404
+            logger.warning(f"No EDA results found for dataset {dataset_id}")
+            return {
+                "dataset_id": dataset_id,
+                "analyses": {},
+                "summary": {
+                    "total_analyses": 0,
+                    "completed_at": None,
+                    "status": "no_results"
+                }
+            }
         
         return {
             "dataset_id": dataset_id,
@@ -261,10 +252,10 @@ async def get_eda_summary(dataset_id: str) -> Dict[str, Any]:
             detail="Failed to generate EDA summary"
         )
 
-@router.post("/eda/{dataset_id}/visualizations")
+@router.get("/eda/{dataset_id}/visualizations")
 async def generate_visualizations(
     dataset_id: str,
-    viz_types: List[str]
+    viz_types: Optional[List[str]] = None
 ) -> Dict[str, Any]:
     """
     Generate specific visualizations for the dataset
@@ -295,6 +286,10 @@ async def generate_visualizations(
         
         visualizations = {}
         
+        # Default visualizations if none specified
+        if not viz_types:
+            viz_types = ['correlation_heatmap', 'distribution_plots', 'missing_values']
+        
         for viz_type in viz_types:
             logger.info(f"Generating {viz_type} visualization for dataset {dataset_id}")
             
@@ -322,11 +317,11 @@ async def generate_visualizations(
                 viz = await viz_generator.create_feature_importance_plot(df)
                 visualizations[viz_type] = viz
         
-        return {
+        return serialize_for_json({
             "dataset_id": dataset_id,
             "visualizations": visualizations,
             "generated_at": pd.Timestamp.now().isoformat()
-        }
+        })
         
     except Exception as e:
         logger.error(f"Visualization generation failed for dataset {dataset_id}: {str(e)}")

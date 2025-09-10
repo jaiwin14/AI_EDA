@@ -1,0 +1,100 @@
+{
+  "dataset_id": "2d18183a-f6d1-44c8-83b6-af415d8928f6",
+  "filename": "2d18183a-f6d1-44c8-83b6-af415d8928f6.csv",
+  "original_filename": "breast_cancer_survival.csv",
+  "metadata": {
+    "shape": [
+      334,
+      15
+    ],
+    "columns": [
+      "Age",
+      "Gender",
+      "Protein1",
+      "Protein2",
+      "Protein3",
+      "Protein4",
+      "Tumour_Stage",
+      "Histology",
+      "ER status",
+      "PR status",
+      "HER2 status",
+      "Surgery_type",
+      "Date_of_Surgery",
+      "Date_of_Last_Visit",
+      "Patient_Status"
+    ],
+    "dtypes": {
+      "Age": "int64",
+      "Gender": "object",
+      "Protein1": "float64",
+      "Protein2": "float64",
+      "Protein3": "float64",
+      "Protein4": "float64",
+      "Tumour_Stage": "object",
+      "Histology": "object",
+      "ER status": "object",
+      "PR status": "object",
+      "HER2 status": "object",
+      "Surgery_type": "object",
+      "Date_of_Surgery": "object",
+      "Date_of_Last_Visit": "object",
+      "Patient_Status": "object"
+    },
+    "missing_values": {
+      "Age": 0,
+      "Gender": 0,
+      "Protein1": 0,
+      "Protein2": 0,
+      "Protein3": 0,
+      "Protein4": 0,
+      "Tumour_Stage": 0,
+      "Histology": 0,
+      "ER status": 0,
+      "PR status": 0,
+      "HER2 status": 0,
+      "Surgery_type": 0,
+      "Date_of_Surgery": 0,
+      "Date_of_Last_Visit": 17,
+      "Patient_Status": 13
+    },
+    "memory_usage": 209296,
+    "validation_results": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "High cardinality categorical columns: ['Date_of_Last_Visit']"
+      ],
+      "recommendations": [
+        "Consider removing constant columns as they provide no information",
+        "Consider feature engineering for high cardinality categorical variables"
+      ],
+      "validation_summary": {
+        "structure": {
+          "is_valid": true,
+          "errors": [],
+          "warnings": [],
+          "recommendations": []
+        },
+        "data_quality": {
+          "is_valid": true,
+          "warnings": [
+            "Constant/near-constant columns found: ['ER status', 'PR status']"
+          ],
+          "recommendations": [
+            "Consider removing constant columns as they provide no information"
+          ]
+        },
+        "ml_readiness": {
+          "warnings": [
+            "High cardinality categorical columns: ['Date_of_Last_Visit']"
+          ],
+          "recommendations": [
+            "Consider feature engineering for high cardinality categorical variables"
+          ]
+        }
+      }
+    },
+    "upload_timestamp": "2025-09-09T16:44:51.609184"
+  }
+}

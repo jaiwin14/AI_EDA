@@ -7,11 +7,11 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import plotly.figure_factory as ff
 from typing import Dict, Any, List, Optional
 import logging
 import json
+from app.utils.json_utils import serialize_for_json
 
 logger = logging.getLogger(__name__)
 
@@ -57,11 +57,11 @@ class VisualizationGenerator:
             textfont={"size": 10}
         )
         
-        return {
+        return serialize_for_json({
             "type": "correlation_heatmap",
             "figure": fig.to_dict(),
             "insights": self._analyze_correlation_insights(corr_matrix)
-        }
+        })
     
     async def create_distribution_plots(self, df: pd.DataFrame) -> Dict[str, Any]:
         """Create distribution plots for numeric columns"""
@@ -111,11 +111,11 @@ class VisualizationGenerator:
             template=self.template
         )
         
-        return {
+        return serialize_for_json({
             "type": "distribution_plots",
             "figure": fig.to_dict(),
             "insights": self._analyze_distribution_insights(df, numeric_cols)
-        }
+        })
     
     async def create_missing_values_plot(self, df: pd.DataFrame) -> Dict[str, Any]:
         """Create missing values visualization"""
@@ -174,13 +174,13 @@ class VisualizationGenerator:
             height=500
         )
         
-        fig.update_xaxis(tickangle=45)
+        fig.update_xaxes(tickangle=45)
         
-        return {
+        return serialize_for_json({
             "type": "missing_values",
             "figure": fig.to_dict(),
             "insights": self._analyze_missing_insights(missing_counts, missing_percentages)
-        }
+        })
     
     async def create_outlier_plots(self, df: pd.DataFrame) -> Dict[str, Any]:
         """Create outlier detection plots (box plots)"""
@@ -227,11 +227,11 @@ class VisualizationGenerator:
             template=self.template
         )
         
-        return {
+        return serialize_for_json({
             "type": "outlier_plots",
             "figure": fig.to_dict(),
             "insights": self._analyze_outlier_insights(df, numeric_cols)
-        }
+        })
     
     async def create_pairplot(self, df: pd.DataFrame, max_features: int = 6) -> Dict[str, Any]:
         """Create pairplot for numeric features"""
@@ -262,11 +262,11 @@ class VisualizationGenerator:
             width=800
         )
         
-        return {
+        return serialize_for_json({
             "type": "pairplot",
             "figure": fig.to_dict(),
             "features_included": selected_cols
-        }
+        })
     
     async def create_feature_importance_plot(self, df: pd.DataFrame) -> Dict[str, Any]:
         """Create feature importance visualization based on variance"""
@@ -300,12 +300,12 @@ class VisualizationGenerator:
             height=max(400, len(numeric_cols) * 30)
         )
         
-        return {
+        return serialize_for_json({
             "type": "feature_importance",
             "figure": fig.to_dict(),
             "method": "variance_based",
-            "importance_scores": normalized_importance.to_dict()
-        }
+            "insights": self._analyze_feature_importance_insights(variances)
+        })
     
     async def create_target_analysis_plot(self, df: pd.DataFrame, target_col: str) -> Dict[str, Any]:
         """Create target variable analysis plots"""

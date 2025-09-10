@@ -32,7 +32,7 @@ const Predictions: React.FC = () => {
   const { data: models } = useQuery<Model[]>({
     queryKey: ['all-models'],
     queryFn: async () => {
-      const response = await axios.get(`${API_BASE_URL}/api/models/`);
+      const response = await axios.get(`${API_BASE_URL}/api/v1/models/`);
       return response.data;
     },
   });
@@ -42,7 +42,7 @@ const Predictions: React.FC = () => {
     queryKey: ['model-schema', selectedModel],
     queryFn: async () => {
       if (!selectedModel) throw new Error('Model ID is required');
-      const response = await axios.get(`${API_BASE_URL}/api/predictions/${selectedModel}/schema`);
+      const response = await axios.get(`${API_BASE_URL}/api/v1/predictions/${selectedModel}/schema`);
       return response.data;
     },
     enabled: !!selectedModel,
@@ -52,7 +52,7 @@ const Predictions: React.FC = () => {
   const predictMutation = useMutation({
     mutationFn: async (data: Record<string, any>) => {
       if (!selectedModel) throw new Error('Model ID is required');
-      const response = await axios.post(`${API_BASE_URL}/api/predictions/${selectedModel}/predict`, {
+      const response = await axios.post(`${API_BASE_URL}/api/v1/predictions/${selectedModel}/predict`, {
         input_data: data,
       });
       return response.data;

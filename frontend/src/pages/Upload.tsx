@@ -23,7 +23,7 @@ const Upload: React.FC = () => {
   const { data: datasets, refetch } = useQuery<Dataset[]>({
     queryKey: ['datasets'],
     queryFn: async () => {
-      const response = await axios.get(`${API_BASE_URL}/api/upload/datasets`);
+      const response = await axios.get(`${API_BASE_URL}/api/v1/upload/datasets`);
       return response.data;
     },
   });
@@ -34,7 +34,7 @@ const Upload: React.FC = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await axios.post(`${API_BASE_URL}/api/upload/`, formData, {
+      const response = await axios.post(`${API_BASE_URL}/api/v1/upload/`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

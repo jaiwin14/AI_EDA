@@ -36,7 +36,7 @@ const Models: React.FC = () => {
     queryKey: ['dataset-info', datasetId],
     queryFn: async () => {
       if (!datasetId) throw new Error('Dataset ID is required');
-      const response = await axios.get(`${API_BASE_URL}/api/upload/datasets/${datasetId}`);
+      const response = await axios.get(`${API_BASE_URL}/api/v1/upload/datasets/${datasetId}`);
       return response.data;
     },
     enabled: !!datasetId,
@@ -47,7 +47,7 @@ const Models: React.FC = () => {
     queryKey: ['models', datasetId],
     queryFn: async () => {
       if (!datasetId) throw new Error('Dataset ID is required');
-      const response = await axios.get(`${API_BASE_URL}/api/models/${datasetId}`);
+      const response = await axios.get(`${API_BASE_URL}/api/v1/models/${datasetId}`);
       return response.data;
     },
     enabled: !!datasetId,
@@ -58,18 +58,18 @@ const Models: React.FC = () => {
     queryKey: ['training-status', datasetId],
     queryFn: async () => {
       if (!datasetId) throw new Error('Dataset ID is required');
-      const response = await axios.get(`${API_BASE_URL}/api/models/${datasetId}/status`);
+      const response = await axios.get(`${API_BASE_URL}/api/v1/models/${datasetId}/status`);
       return response.data;
     },
     enabled: !!datasetId,
-    refetchInterval: trainingStatus?.status === 'training' ? 2000 : false,
+    refetchInterval: (data) => data?.status === 'training' ? 2000 : false,
   });
 
   // Start training mutation
   const trainModelsMutation = useMutation({
     mutationFn: async (params: { target_column: string; task_type: string }) => {
       if (!datasetId) throw new Error('Dataset ID is required');
-      const response = await axios.post(`${API_BASE_URL}/api/models/${datasetId}/train`, params);
+      const response = await axios.post(`${API_BASE_URL}/api/v1/models/train`, { dataset_id: datasetId, ...params });
       return response.data;
     },
     onSuccess: () => {
@@ -253,7 +253,7 @@ const Models: React.FC = () => {
                             <button
                               onClick={() => {
                                 // Navigate to explanations page
-                                window.open(`${API_BASE_URL}/api/explanations/${model.model_id}/global`, '_blank');
+                                window.open(`${API_BASE_URL}/api/v1/explanations/${model.model_id}/global`, '_blank');
                               }}
                               className="btn btn-secondary btn-sm"
                             >

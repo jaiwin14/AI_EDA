@@ -10,6 +10,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  define: {
+    global: 'globalThis',
+  },
   server: {
     port: 3000,
     proxy: {
@@ -35,5 +38,6 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['plotly.js', 'react-plotly.js'],
+    exclude: ['buffer'],
   },
 })

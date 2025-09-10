@@ -61,7 +61,7 @@ class DatabaseManager:
                 original_filename VARCHAR NOT NULL,
                 file_size INTEGER,
                 rows_count INTEGER,
-                columns_count INTEGER,
+                cols INTEGER,
                 upload_timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 metadata JSONB,
                 status VARCHAR DEFAULT 'uploaded'
@@ -71,7 +71,7 @@ class DatabaseManager:
             CREATE TABLE IF NOT EXISTS eda_results (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 dataset_id UUID REFERENCES datasets(id) ON DELETE CASCADE,
-                analysis_type VARCHAR NOT NULL,
+                type VARCHAR NOT NULL,
                 results JSONB NOT NULL,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             );
@@ -127,7 +127,7 @@ class DatabaseManager:
                 'original_filename': original_filename,
                 'file_size': file_size,
                 'rows_count': rows,
-                'columns_count': cols,
+                'cols': cols,
                 'metadata': metadata
             }).execute()
             
@@ -162,7 +162,7 @@ class DatabaseManager:
         try:
             result = self.client.table('eda_results').insert({
                 'dataset_id': dataset_id,
-                'analysis_type': analysis_type,
+                'type': analysis_type,
                 'results': results
             }).execute()
             
@@ -182,7 +182,7 @@ class DatabaseManager:
         try:
             query = self.client.table('eda_results').select('*').eq('dataset_id', dataset_id)
             if analysis_type:
-                query = query.eq('analysis_type', analysis_type)
+                query = query.eq('type', analysis_type)
             
             result = query.execute()
             return result.data or []

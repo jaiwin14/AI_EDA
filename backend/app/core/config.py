@@ -6,7 +6,8 @@ Environment variables and settings management
 import os
 from pathlib import Path
 from typing import List
-from pydantic import BaseSettings, validator
+from pydantic import field_validator
+from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     """Application settings with environment variable support"""
@@ -28,7 +29,8 @@ class Settings(BaseSettings):
         "https://your-netlify-app.netlify.app",  # Production frontend
     ]
     
-    @validator("ALLOWED_ORIGINS", pre=True)
+    @field_validator("ALLOWED_ORIGINS", mode="before")
+    @classmethod
     def assemble_cors_origins(cls, v):
         if isinstance(v, str):
             return [i.strip() for i in v.split(",")]
@@ -66,9 +68,11 @@ class Settings(BaseSettings):
     # Redis settings (for caching if needed)
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = {
+        "env_file": ".env",
+        "case_sensitive": True,
+        "extra": "ignore"
+    }
 
 # Global settings instance
 settings = Settings()

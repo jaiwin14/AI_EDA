@@ -29,7 +29,7 @@ const EDA: React.FC = () => {
     queryKey: ['eda', datasetId],
     queryFn: async () => {
       if (!datasetId) throw new Error('Dataset ID is required');
-      const response = await axios.get(`${API_BASE_URL}/api/eda/${datasetId}/results`);
+      const response = await axios.get(`${API_BASE_URL}/api/v1/eda/${datasetId}/results`);
       return response.data;
     },
     enabled: !!datasetId,
@@ -40,7 +40,7 @@ const EDA: React.FC = () => {
     queryKey: ['visualizations', datasetId],
     queryFn: async () => {
       if (!datasetId) throw new Error('Dataset ID is required');
-      const response = await axios.get(`${API_BASE_URL}/api/eda/${datasetId}/visualizations`);
+      const response = await axios.get(`${API_BASE_URL}/api/v1/eda/${datasetId}/visualizations`);
       return response.data;
     },
     enabled: !!datasetId,

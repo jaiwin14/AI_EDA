@@ -1,0 +1,67 @@
+{
+  "dataset_id": "0ef02cc9-74df-4597-8262-633116cbecf6",
+  "filename": "0ef02cc9-74df-4597-8262-633116cbecf6.csv",
+  "original_filename": "Football Data Test Task-DESKTOP-HKE84D6(Tasks).csv",
+  "metadata": {
+    "shape": [
+      108,
+      2
+    ],
+    "columns": [
+      "Raw Data Information",
+      "Unnamed: 1"
+    ],
+    "dtypes": {
+      "Raw Data Information": "object",
+      "Unnamed: 1": "float64"
+    },
+    "missing_values": {
+      "Raw Data Information": 12,
+      "Unnamed: 1": 108
+    },
+    "memory_usage": "11076",
+    "validation_results": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "High cardinality categorical columns: ['Raw Data Information']"
+      ],
+      "recommendations": [
+        "Review missing value patterns and consider advanced imputation",
+        "Consider removing duplicate rows",
+        "Consider removing constant columns as they provide no information",
+        "Consider feature engineering for high cardinality categorical variables"
+      ],
+      "validation_summary": {
+        "structure": {
+          "is_valid": true,
+          "errors": [],
+          "warnings": [],
+          "recommendations": []
+        },
+        "data_quality": {
+          "is_valid": true,
+          "warnings": [
+            "High missing value percentage: 55.6%",
+            "Found 12 duplicate rows (11.1%)",
+            "Constant/near-constant columns found: ['Unnamed: 1']"
+          ],
+          "recommendations": [
+            "Review missing value patterns and consider advanced imputation",
+            "Consider removing duplicate rows",
+            "Consider removing constant columns as they provide no information"
+          ]
+        },
+        "ml_readiness": {
+          "warnings": [
+            "High cardinality categorical columns: ['Raw Data Information']"
+          ],
+          "recommendations": [
+            "Consider feature engineering for high cardinality categorical variables"
+          ]
+        }
+      }
+    },
+    "upload_timestamp": "2025-09-09T16:32:23.990613"
+  }
+}
