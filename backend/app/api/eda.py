@@ -22,6 +22,30 @@ from app.api.upload import load_dataset
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+def _calculate_monotonicity(series):
+    """Calculate monotonicity of a series"""
+    if len(series) < 2:
+        return "Not enough data"
+    
+    diff = series.diff().dropna()
+    if len(diff) == 0:
+        return "Constant"
+    
+    increasing = (diff >= 0).sum()
+    decreasing = (diff <= 0).sum()
+    total = len(diff)
+    
+    if increasing == total:
+        return "Strictly Increasing"
+    elif decreasing == total:
+        return "Strictly Decreasing"
+    elif increasing / total > 0.95:
+        return "Mostly Increasing"
+    elif decreasing / total > 0.95:
+        return "Mostly Decreasing"
+    else:
+        return "Not Monotonic"
+
 @router.post("/eda/{dataset_id}")
 async def run_eda_analysis(
     dataset_id: str,
@@ -303,12 +327,131 @@ async def get_statistical_analysis(dataset_id: str) -> Dict[str, Any]:
         memory_usage_mb = memory_usage_bytes / (1024 * 1024)
         average_record_size_bytes = memory_usage_bytes / len(df) if len(df) > 0 else 0
         
-        # Generate comprehensive descriptive statistics for numeric columns
-        numeric_describe = {}
+        # Generate comprehensive analysis for numeric columns
+        detailed_numeric_analysis = {}
         if len(numeric_cols) > 0:
             describe_df = df[numeric_cols].describe()
             for col in numeric_cols:
-                numeric_describe[col] = {
+                col_data = df[col].dropna()
+                col_series = df[col]
+                
+                # Basic information
+                distinct_count = col_series.nunique()
+                missing_count = col_series.isnull().sum()
+                total_count = len(col_series)
+                non_null_count = col_series.count()
+                
+                # Calculate percentages
+                distinct_percentage = (distinct_count / total_count) * 100 if total_count > 0 else 0
+                missing_percentage = (missing_count / total_count) * 100 if total_count > 0 else 0
+                
+                # Check for infinite values
+                infinite_count = 0
+                infinite_percentage = 0
+                if len(col_data) > 0:
+                    infinite_count = int(np.isinf(col_data).sum())
+                    infinite_percentage = (infinite_count / total_count) * 100 if total_count > 0 else 0
+                
+                # Count zeros and negatives
+                zeros_count = int((col_data == 0).sum()) if len(col_data) > 0 else 0
+                zeros_percentage = (zeros_count / total_count) * 100 if total_count > 0 else 0
+                negative_count = int((col_data < 0).sum()) if len(col_data) > 0 else 0
+                negative_percentage = (negative_count / total_count) * 100 if total_count > 0 else 0
+                
+                # Memory size for this column
+                col_memory_bytes = col_series.memory_usage(deep=True)
+                
+                # Basic statistics
+                if len(col_data) > 0:
+                    min_val = float(col_data.min())
+                    max_val = float(col_data.max())
+                    mean_val = float(col_data.mean())
+                    median_val = float(col_data.median())
+                    std_val = float(col_data.std()) if len(col_data) > 1 else 0.0
+                else:
+                    min_val = max_val = mean_val = median_val = std_val = None
+                
+                # Quantile statistics
+                quantile_stats = {}
+                if len(col_data) > 0:
+                    quantile_stats = {
+                        "minimum": float(col_data.min()),
+                        "percentile_5": float(col_data.quantile(0.05)),
+                        "q1": float(col_data.quantile(0.25)),
+                        "median": float(col_data.median()),
+                        "q3": float(col_data.quantile(0.75)),
+                        "percentile_95": float(col_data.quantile(0.95)),
+                        "maximum": float(col_data.max()),
+                        "range": float(col_data.max() - col_data.min()),
+                        "iqr": float(col_data.quantile(0.75) - col_data.quantile(0.25))
+                    }
+                
+                # Descriptive statistics
+                descriptive_stats = {}
+                if len(col_data) > 1:
+                    cv = (std_val / mean_val * 100) if mean_val != 0 else 0
+                    # Calculate Median Absolute Deviation manually since mad() is deprecated
+                    mad = float((col_data - col_data.median()).abs().median()) if len(col_data) > 0 else 0
+                    
+                    descriptive_stats = {
+                        "standard_deviation": std_val,
+                        "coefficient_of_variation": round(cv, 2),
+                        "kurtosis": float(col_data.kurtosis()),
+                        "mean": mean_val,
+                        "median_absolute_deviation": mad,
+                        "skewness": float(col_data.skew()),
+                        "sum": float(col_data.sum()),
+                        "variance": float(col_data.var()),
+                        "monotonicity": _calculate_monotonicity(col_data)
+                    }
+                
+                # Common values (most frequent)
+                common_values = {}
+                if len(col_data) > 0:
+                    value_counts = col_data.value_counts().head(10)
+                    common_values = {
+                        "values": [{"value": float(val), "count": int(count), "percentage": round((count/len(col_data))*100, 2)} 
+                                 for val, count in value_counts.items()]
+                    }
+                
+                # Extreme values
+                extreme_values = {}
+                if len(col_data) > 0:
+                    sorted_data = col_data.sort_values()
+                    extreme_values = {
+                        "lowest": [{"value": float(val), "index": int(idx)} 
+                                 for idx, val in sorted_data.head(5).items()],
+                        "highest": [{"value": float(val), "index": int(idx)} 
+                                  for idx, val in sorted_data.tail(5).items()]
+                    }
+
+                detailed_numeric_analysis[col] = {
+                    # Basic information
+                    "variable_name": col,
+                    "data_type": str(col_series.dtype),
+                    "is_uniform": distinct_count == 1,
+                    "is_unique": distinct_count == total_count,
+                    "distinct_count": distinct_count,
+                    "distinct_percentage": round(distinct_percentage, 2),
+                    "missing_count": missing_count,
+                    "missing_percentage": round(missing_percentage, 2),
+                    "infinite_count": infinite_count,
+                    "infinite_percentage": round(infinite_percentage, 2),
+                    "minimum": min_val,
+                    "maximum": max_val,
+                    "zeros_count": zeros_count,
+                    "zeros_percentage": round(zeros_percentage, 2),
+                    "negative_count": negative_count,
+                    "negative_percentage": round(negative_percentage, 2),
+                    "memory_size_bytes": int(col_memory_bytes),
+                    
+                    # Detailed analysis tabs
+                    "quantile_statistics": quantile_stats,
+                    "descriptive_statistics": descriptive_stats,
+                    "common_values": common_values,
+                    "extreme_values": extreme_values,
+                    
+                    # Basic statistics for backward compatibility
                     "count": float(describe_df.loc['count', col]),
                     "mean": float(describe_df.loc['mean', col]),
                     "std": float(describe_df.loc['std', col]),
@@ -360,7 +503,7 @@ async def get_statistical_analysis(dataset_id: str) -> Dict[str, Any]:
             },
             "basic_statistics": {
                 "numeric_summary": {
-                    "describe": numeric_describe
+                    "describe": detailed_numeric_analysis
                 },
                 "categorical_summary": categorical_describe,
                 "overview": {
