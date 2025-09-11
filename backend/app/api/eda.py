@@ -252,6 +252,216 @@ async def get_eda_summary(dataset_id: str) -> Dict[str, Any]:
             detail="Failed to generate EDA summary"
         )
 
+@router.get("/eda/{dataset_id}/statistics")
+async def get_statistical_analysis(dataset_id: str) -> Dict[str, Any]:
+    """
+    Get comprehensive statistical analysis for the dataset
+    
+    Args:
+        dataset_id: ID of the dataset
+    """
+    
+    # Find dataset file
+    dataset_files = list(settings.UPLOAD_DIR.glob(f"{dataset_id}.*"))
+    if not dataset_files:
+        raise HTTPException(
+            status_code=404,
+            detail="Dataset not found"
+        )
+    
+    filepath = dataset_files[0]
+    
+    try:
+        # Load dataset
+        df = await load_dataset(filepath)
+        
+        # Initialize EDA processor
+        eda_processor = EDAProcessor()
+        
+        # Get comprehensive statistical analysis
+        basic_stats = await eda_processor.generate_basic_statistics(df)
+        missing_analysis = await eda_processor.analyze_missing_values(df)
+        univariate_analysis = await eda_processor.univariate_analysis(df)
+        data_types_analysis = await eda_processor.analyze_data_types(df)
+        
+        # Calculate comprehensive dataset overview
+        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+        datetime_cols = df.select_dtypes(include=['datetime64']).columns.tolist()
+        
+        # Calculate missing values
+        total_missing = df.isnull().sum().sum()
+        total_cells = len(df) * len(df.columns)
+        missing_percentage = (total_missing / total_cells) * 100 if total_cells > 0 else 0
+        
+        # Calculate duplicate rows
+        duplicate_rows = df.duplicated().sum()
+        duplicate_percentage = (duplicate_rows / len(df)) * 100 if len(df) > 0 else 0
+        
+        # Memory usage calculations
+        memory_usage_bytes = df.memory_usage(deep=True).sum()
+        memory_usage_mb = memory_usage_bytes / (1024 * 1024)
+        average_record_size_bytes = memory_usage_bytes / len(df) if len(df) > 0 else 0
+        
+        # Generate comprehensive descriptive statistics for numeric columns
+        numeric_describe = {}
+        if len(numeric_cols) > 0:
+            describe_df = df[numeric_cols].describe()
+            for col in numeric_cols:
+                numeric_describe[col] = {
+                    "count": float(describe_df.loc['count', col]),
+                    "mean": float(describe_df.loc['mean', col]),
+                    "std": float(describe_df.loc['std', col]),
+                    "min": float(describe_df.loc['min', col]),
+                    "25%": float(describe_df.loc['25%', col]),
+                    "50%": float(describe_df.loc['50%', col]),
+                    "75%": float(describe_df.loc['75%', col]),
+                    "max": float(describe_df.loc['max', col])
+                }
+
+        # Generate categorical summary
+        categorical_describe = {}
+        for col in categorical_cols:
+            value_counts = df[col].value_counts()
+            categorical_describe[col] = {
+                "count": int(df[col].count()),
+                "unique": int(df[col].nunique()),
+                "top": str(value_counts.index[0]) if len(value_counts) > 0 else None,
+                "freq": int(value_counts.iloc[0]) if len(value_counts) > 0 else 0,
+                "unique_ratio": float(df[col].nunique() / len(df)),
+                "value_counts": dict(value_counts.head(10).to_dict())
+            }
+
+        # Organize results with proper overview data
+        results = {
+            "dataset_id": dataset_id,
+            "dataset_shape": [int(df.shape[0]), int(df.shape[1])],
+            "analysis_timestamp": pd.Timestamp.now().isoformat(),
+            "dataset_overview": {
+                "total_rows": int(len(df)),
+                "total_columns": int(len(df.columns)),
+                "total_variables": int(len(df.columns)),  # Number of variables/attributes
+                "number_of_data_records": int(len(df)),  # Number of data records
+                "numeric_columns": int(len(numeric_cols)),
+                "categorical_columns": int(len(categorical_cols)),
+                "datetime_columns": int(len(datetime_cols)),
+                "total_missing_cells": int(total_missing),
+                "missing_cells_percentage": float(missing_percentage),
+                "duplicate_rows": int(duplicate_rows),
+                "duplicate_rows_percentage": float(duplicate_percentage),
+                "total_memory_usage_mb": float(memory_usage_mb),
+                "total_memory_usage_bytes": int(memory_usage_bytes),
+                "average_record_size_bytes": float(average_record_size_bytes),
+                "variable_types": {
+                    "numeric": int(len(numeric_cols)),
+                    "categorical": int(len(categorical_cols)),
+                    "datetime": int(len(datetime_cols))
+                }
+            },
+            "basic_statistics": {
+                "numeric_summary": {
+                    "describe": numeric_describe
+                },
+                "categorical_summary": categorical_describe,
+                "overview": {
+                    "total_rows": int(len(df)),
+                    "total_columns": int(len(df.columns)),
+                    "numeric_columns": int(len(numeric_cols)),
+                    "categorical_columns": int(len(categorical_cols))
+                }
+            },
+            "missing_values_analysis": missing_analysis,
+            "univariate_analysis": univariate_analysis,
+            "data_types_analysis": data_types_analysis,
+            "column_summary": []
+        }
+        
+        # Create detailed column summary
+        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+        
+        for col in df.columns:
+            col_summary = {
+                "column_name": col,
+                "data_type": str(df[col].dtype),
+                "column_type": "numerical" if col in numeric_cols else "categorical",
+                "non_null_count": int(df[col].count()),
+                "null_count": int(df[col].isnull().sum()),
+                "null_percentage": float((df[col].isnull().sum() / len(df)) * 100),
+                "unique_count": int(df[col].nunique()),
+                "unique_ratio": float(df[col].nunique() / len(df))
+            }
+            
+            if col in numeric_cols:
+                # Calculate statistics only on non-null values
+                col_data = df[col].dropna()
+                
+                if len(col_data) > 0:
+                    # 5-point summary
+                    min_val = float(col_data.min())
+                    q25_val = float(col_data.quantile(0.25))
+                    median_val = float(col_data.median())
+                    q75_val = float(col_data.quantile(0.75))
+                    max_val = float(col_data.max())
+                    
+                    # Additional statistics
+                    mean_val = float(col_data.mean())
+                    std_val = float(col_data.std()) if len(col_data) > 1 else 0.0
+                    var_val = float(col_data.var()) if len(col_data) > 1 else 0.0
+                    skew_val = float(col_data.skew()) if len(col_data) > 2 else 0.0
+                    kurt_val = float(col_data.kurtosis()) if len(col_data) > 3 else 0.0
+                    
+                    col_summary.update({
+                        "min": min_val,
+                        "q25": q25_val,
+                        "median": median_val,
+                        "q75": q75_val,
+                        "max": max_val,
+                        "mean": mean_val,
+                        "std": std_val,
+                        "variance": var_val,
+                        "skewness": skew_val,
+                        "kurtosis": kurt_val,
+                        "range": max_val - min_val,
+                        "iqr": q75_val - q25_val,
+                        "coefficient_of_variation": (std_val / mean_val * 100) if mean_val != 0 else 0.0
+                    })
+                else:
+                    # No valid data
+                    col_summary.update({
+                        "min": None,
+                        "q25": None,
+                        "median": None,
+                        "q75": None,
+                        "max": None,
+                        "mean": None,
+                        "std": None,
+                        "variance": None,
+                        "skewness": None,
+                        "kurtosis": None,
+                        "range": None,
+                        "iqr": None,
+                        "coefficient_of_variation": None
+                    })
+            else:
+                value_counts = df[col].value_counts()
+                col_summary.update({
+                    "most_frequent_value": value_counts.index[0] if len(value_counts) > 0 else None,
+                    "most_frequent_count": int(value_counts.iloc[0]) if len(value_counts) > 0 else 0,
+                    "most_frequent_percentage": float((value_counts.iloc[0] / len(df)) * 100) if len(value_counts) > 0 else 0
+                })
+            
+            results["column_summary"].append(col_summary)
+        
+        return serialize_for_json(results)
+        
+    except Exception as e:
+        logger.error(f"Statistical analysis failed for dataset {dataset_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Statistical analysis failed: {str(e)}"
+        )
+
 @router.get("/eda/{dataset_id}/visualizations")
 async def generate_visualizations(
     dataset_id: str,

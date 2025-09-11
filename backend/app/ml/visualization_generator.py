@@ -8,6 +8,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import plotly.figure_factory as ff
+from plotly.subplots import make_subplots
 from typing import Dict, Any, List, Optional
 import logging
 import json

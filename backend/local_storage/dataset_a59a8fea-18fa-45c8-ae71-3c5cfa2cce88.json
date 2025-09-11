@@ -1,0 +1,60 @@
+{
+  "dataset_id": "a59a8fea-18fa-45c8-ae71-3c5cfa2cce88",
+  "filename": "a59a8fea-18fa-45c8-ae71-3c5cfa2cce88.xlsx",
+  "original_filename": "Shortlisted Profiles - DJ Sanghvi.xlsx",
+  "metadata": {
+    "shape": [
+      162,
+      2
+    ],
+    "columns": [
+      "Full Name",
+      "Email ID"
+    ],
+    "dtypes": {
+      "Full Name": "object",
+      "Email ID": "object"
+    },
+    "missing_values": {
+      "Full Name": 0,
+      "Email ID": 0
+    },
+    "memory_usage": 25502,
+    "validation_results": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "No numeric columns found",
+        "High cardinality categorical columns: ['Full Name', 'Email ID']"
+      ],
+      "recommendations": [
+        "Ensure dataset has numeric features for ML algorithms",
+        "Consider feature engineering for high cardinality categorical variables"
+      ],
+      "validation_summary": {
+        "structure": {
+          "is_valid": true,
+          "errors": [],
+          "warnings": [],
+          "recommendations": []
+        },
+        "data_quality": {
+          "is_valid": true,
+          "warnings": [],
+          "recommendations": []
+        },
+        "ml_readiness": {
+          "warnings": [
+            "No numeric columns found",
+            "High cardinality categorical columns: ['Full Name', 'Email ID']"
+          ],
+          "recommendations": [
+            "Ensure dataset has numeric features for ML algorithms",
+            "Consider feature engineering for high cardinality categorical variables"
+          ]
+        }
+      }
+    },
+    "upload_timestamp": "2025-09-10T18:06:12.873386"
+  }
+}

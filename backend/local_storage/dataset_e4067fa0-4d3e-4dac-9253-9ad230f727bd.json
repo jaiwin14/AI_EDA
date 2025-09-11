@@ -1,0 +1,78 @@
+{
+  "dataset_id": "e4067fa0-4d3e-4dac-9253-9ad230f727bd",
+  "filename": "e4067fa0-4d3e-4dac-9253-9ad230f727bd.xlsx",
+  "original_filename": "SIH_PS_2024.xlsx",
+  "metadata": {
+    "shape": [
+      246,
+      8
+    ],
+    "columns": [
+      "Statement_id",
+      "Title",
+      "Category",
+      "Technology_Bucket",
+      "Datasetfile",
+      "Description",
+      "Department",
+      "Organisation"
+    ],
+    "dtypes": {
+      "Statement_id": "object",
+      "Title": "object",
+      "Category": "object",
+      "Technology_Bucket": "object",
+      "Datasetfile": "object",
+      "Description": "object",
+      "Department": "object",
+      "Organisation": "object"
+    },
+    "missing_values": {
+      "Statement_id": 0,
+      "Title": 0,
+      "Category": 0,
+      "Technology_Bucket": 0,
+      "Datasetfile": 222,
+      "Description": 0,
+      "Department": 0,
+      "Organisation": 0
+    },
+    "memory_usage": 1000080,
+    "validation_results": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "No numeric columns found",
+        "High cardinality categorical columns: ['Statement_id', 'Title', 'Description']"
+      ],
+      "recommendations": [
+        "Ensure dataset has numeric features for ML algorithms",
+        "Consider feature engineering for high cardinality categorical variables"
+      ],
+      "validation_summary": {
+        "structure": {
+          "is_valid": true,
+          "errors": [],
+          "warnings": [],
+          "recommendations": []
+        },
+        "data_quality": {
+          "is_valid": true,
+          "warnings": [],
+          "recommendations": []
+        },
+        "ml_readiness": {
+          "warnings": [
+            "No numeric columns found",
+            "High cardinality categorical columns: ['Statement_id', 'Title', 'Description']"
+          ],
+          "recommendations": [
+            "Ensure dataset has numeric features for ML algorithms",
+            "Consider feature engineering for high cardinality categorical variables"
+          ]
+        }
+      }
+    },
+    "upload_timestamp": "2025-09-10T18:39:34.871444"
+  }
+}

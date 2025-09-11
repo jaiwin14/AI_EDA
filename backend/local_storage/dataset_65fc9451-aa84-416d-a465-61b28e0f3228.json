@@ -1,0 +1,81 @@
+{
+  "dataset_id": "65fc9451-aa84-416d-a465-61b28e0f3228",
+  "filename": "65fc9451-aa84-416d-a465-61b28e0f3228.csv",
+  "original_filename": "synthetic_pulse_data_updated_dosha.csv",
+  "metadata": {
+    "shape": [
+      1500,
+      13
+    ],
+    "columns": [
+      "ECG Time [s]",
+      "ECG [mV]",
+      "PPG Time [s]",
+      "PPG0",
+      "PPG1",
+      "PPG2",
+      "HRB Time [s]",
+      "HRB Heartrate [bpm]",
+      "HRB RR Interval [ms]",
+      "Dosha",
+      "Peak Variability [bpm/s]",
+      "Dosha Alignment",
+      "Synthetic Dosha"
+    ],
+    "dtypes": {
+      "ECG Time [s]": "float64",
+      "ECG [mV]": "float64",
+      "PPG Time [s]": "float64",
+      "PPG0": "float64",
+      "PPG1": "float64",
+      "PPG2": "float64",
+      "HRB Time [s]": "float64",
+      "HRB Heartrate [bpm]": "int64",
+      "HRB RR Interval [ms]": "int64",
+      "Dosha": "object",
+      "Peak Variability [bpm/s]": "float64",
+      "Dosha Alignment": "bool",
+      "Synthetic Dosha": "object"
+    },
+    "missing_values": {
+      "ECG Time [s]": 0,
+      "ECG [mV]": 0,
+      "PPG Time [s]": 0,
+      "PPG0": 0,
+      "PPG1": 0,
+      "PPG2": 0,
+      "HRB Time [s]": 0,
+      "HRB Heartrate [bpm]": 0,
+      "HRB RR Interval [ms]": 0,
+      "Dosha": 0,
+      "Peak Variability [bpm/s]": 0,
+      "Dosha Alignment": 0,
+      "Synthetic Dosha": 0
+    },
+    "memory_usage": 308766,
+    "validation_results": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [],
+      "recommendations": [],
+      "validation_summary": {
+        "structure": {
+          "is_valid": true,
+          "errors": [],
+          "warnings": [],
+          "recommendations": []
+        },
+        "data_quality": {
+          "is_valid": true,
+          "warnings": [],
+          "recommendations": []
+        },
+        "ml_readiness": {
+          "warnings": [],
+          "recommendations": []
+        }
+      }
+    },
+    "upload_timestamp": "2025-09-10T18:40:44.794620"
+  }
+}

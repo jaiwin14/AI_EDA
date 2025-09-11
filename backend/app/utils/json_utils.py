@@ -19,6 +19,8 @@ def serialize_for_json(obj: Any) -> Any:
         if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
+    elif isinstance(obj, (np.bool_, np.bool)):
+        return bool(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
     elif isinstance(obj, pd.Series):
