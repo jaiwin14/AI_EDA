@@ -462,17 +462,63 @@ async def get_statistical_analysis(dataset_id: str) -> Dict[str, Any]:
                     "max": float(describe_df.loc['max', col])
                 }
 
-        # Generate categorical summary
+        # Generate detailed categorical summary
         categorical_describe = {}
         for col in categorical_cols:
+            col_data = df[col].dropna()  # Remove NaN for length calculations
             value_counts = df[col].value_counts()
+            total_count = len(df)
+            missing_count = int(df[col].isnull().sum())
+            distinct_count = int(df[col].nunique())
+            
+            # Basic info
+            basic_info = {
+                "variable_name": col,
+                "data_type": str(df[col].dtype),
+                "distinct": distinct_count,
+                "distinct_percentage": round((distinct_count / total_count) * 100, 2),
+                "unique_ratio": round(distinct_count / total_count, 4) if total_count > 0 else 0,
+                "missing": missing_count,
+                "missing_percentage": round((missing_count / total_count) * 100, 2),
+                "memory_size": round(df[col].memory_usage(deep=True) / 1024, 2),  # in KB
+                "most_frequent": str(value_counts.index[0]) if len(value_counts) > 0 else "N/A",
+                "frequency": int(value_counts.iloc[0]) if len(value_counts) > 0 else 0
+            }
+            
+            # Length statistics (for string columns)
+            length_stats = {}
+            if col_data.dtype == 'object' and len(col_data) > 0:
+                lengths = col_data.astype(str).str.len()
+                length_stats = {
+                    "max_length": int(lengths.max()) if len(lengths) > 0 else 0,
+                    "median_length": float(lengths.median()) if len(lengths) > 0 else 0,
+                    "mean_length": round(float(lengths.mean()), 2) if len(lengths) > 0 else 0,
+                    "min_length": int(lengths.min()) if len(lengths) > 0 else 0
+                }
+            
+            # Categories with frequency
+            categories_data = []
+            if len(value_counts) > 0:
+                for category, count in value_counts.items():
+                    categories_data.append({
+                        "category": str(category),
+                        "count": int(count),
+                        "frequency_percent": round((count / total_count) * 100, 2)
+                    })
+            
             categorical_describe[col] = {
+                # Basic statistics for backward compatibility
                 "count": int(df[col].count()),
-                "unique": int(df[col].nunique()),
-                "top": str(value_counts.index[0]) if len(value_counts) > 0 else None,
+                "unique": distinct_count,
+                "top": str(value_counts.index[0]) if len(value_counts) > 0 else "",
                 "freq": int(value_counts.iloc[0]) if len(value_counts) > 0 else 0,
-                "unique_ratio": float(df[col].nunique() / len(df)),
-                "value_counts": dict(value_counts.head(10).to_dict())
+                "missing": missing_count,
+                "missing_percentage": round((missing_count / total_count) * 100, 2),
+                
+                # Detailed analysis
+                "basic_info": basic_info,
+                "length_stats": length_stats,
+                "categories": categories_data
             }
 
         # Organize results with proper overview data
