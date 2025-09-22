@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import aiService from '../services/aiService';
 import { useQuery } from '@tanstack/react-query';
 import Plot from 'react-plotly.js';
 import axios from 'axios';
@@ -451,6 +452,34 @@ const EDA: React.FC = () => {
     enabled: !!datasetId,
   });
 
+  // Fetch AI overview using new AI service
+  const { data: aiOverview, isLoading: aiOverviewLoading, error: aiOverviewError } = useQuery({
+    queryKey: ['ai-overview', datasetId],
+    queryFn: async () => {
+      if (!datasetId) throw new Error('Dataset ID is required');
+      console.log('Fetching AI overview for dataset:', datasetId);
+      const result = await aiService.getDatasetOverview(datasetId);
+      console.log('AI Overview result:', result);
+      return result;
+    },
+    enabled: !!datasetId,
+    retry: 1,
+  });
+
+  // Fetch AI summary using new AI service
+  const { data: aiSummary, isLoading: aiSummaryLoading, error: aiSummaryError } = useQuery({
+    queryKey: ['ai-summary', datasetId],
+    queryFn: async () => {
+      if (!datasetId) throw new Error('Dataset ID is required');
+      console.log('Fetching AI summary for dataset:', datasetId);
+      const result = await aiService.getStatisticalInsights(datasetId);
+      console.log('AI Summary result:', result);
+      return result;
+    },
+    enabled: !!datasetId,
+    retry: 1,
+  });
+
   if (isLoading) {
     return (
       <div className="card">
@@ -638,6 +667,124 @@ const EDA: React.FC = () => {
         <div className="mt-4">
           {selectedVisualization === 'overview' && (
             <div>
+              {/* AI Overview Section */}
+              {aiOverviewLoading && (
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                    <span className="text-blue-800">Loading AI insights...</span>
+                  </div>
+                </div>
+              )}
+              
+              {aiOverviewError && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-800">Failed to load AI overview: {String(aiOverviewError)}</p>
+                </div>
+              )}
+              
+              {aiOverview?.data?.overview && (
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h3 className="font-semibold mb-3 text-blue-800 flex items-center">
+                    <span className="mr-2">🤖</span>
+                    AI Dataset Overview
+                  </h3>
+                  <div className="space-y-2">
+                    <p className="text-blue-900 font-medium">
+                      {aiOverview.data.overview.overview_line_1}
+                    </p>
+                    <p className="text-blue-800">
+                      {aiOverview.data.overview.overview_line_2}
+                    </p>
+                    {aiOverview.data.overview.key_characteristics && (
+                      <div className="mt-3">
+                        <h4 className="font-medium text-blue-800 mb-2">Key Characteristics:</h4>
+                        <ul className="list-disc list-inside space-y-1">
+                          {aiOverview.data.overview.key_characteristics.map((characteristic: string, index: number) => (
+                            <li key={index} className="text-blue-700 text-sm">{characteristic}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Parse AI Overview Data */}
+              {(() => {
+                let overviewData = null;
+                
+                if (aiOverview?.data?.overview) {
+                  overviewData = aiOverview.data.overview;
+                } else if (aiOverview?.data?.insights) {
+                  try {
+                    const insightsStr = aiOverview.data.insights;
+                    const jsonMatch = insightsStr.match(/```json\n([\s\S]*?)\n```/);
+                    if (jsonMatch) {
+                      const parsedData = JSON.parse(jsonMatch[1]);
+                      overviewData = parsedData?.overview;
+                    }
+                  } catch (e) {
+                    console.error('Failed to parse AI overview insights:', e);
+                  }
+                }
+                
+                return overviewData && (
+                  <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h3 className="font-semibold mb-3 text-blue-800 flex items-center">
+                      <span className="mr-2">🤖</span>
+                      AI Dataset Overview
+                    </h3>
+                    <div className="space-y-2">
+                      <p className="text-blue-900 font-medium">
+                        {overviewData.overview_line_1}
+                      </p>
+                      <p className="text-blue-800">
+                        {overviewData.overview_line_2}
+                      </p>
+                      {overviewData.key_characteristics && (
+                        <div className="mt-3">
+                          <h4 className="font-medium text-blue-800 mb-2">Key Characteristics:</h4>
+                          <ul className="list-disc list-inside space-y-1">
+                            {overviewData.key_characteristics.map((characteristic: string, index: number) => (
+                              <li key={index} className="text-blue-700 text-sm">{characteristic}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+              
+              {/* Fallback: Show raw AI data if structure is different */}
+              {aiOverview && !(() => {
+                if (aiOverview?.data?.overview) return true;
+                if (aiOverview?.data?.insights) {
+                  try {
+                    const insightsStr = aiOverview.data.insights;
+                    const jsonMatch = insightsStr.match(/```json\n([\s\S]*?)\n```/);
+                    if (jsonMatch) {
+                      const parsedData = JSON.parse(jsonMatch[1]);
+                      return parsedData?.overview;
+                    }
+                  } catch (e) {
+                    // ignore
+                  }
+                }
+                return false;
+              })() && (
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <h3 className="font-semibold mb-3 text-yellow-800 flex items-center">
+                    <span className="mr-2">🤖</span>
+                    AI Dataset Overview (Raw)
+                  </h3>
+                  <pre className="text-xs text-yellow-900 bg-yellow-100 p-2 rounded overflow-auto">
+                    {JSON.stringify(aiOverview, null, 2)}
+                  </pre>
+                </div>
+              )}
+              
               <h3 className="font-semibold mb-4">Data Quality Summary</h3>
               {missingValues.columns_with_missing && 
                Object.keys(missingValues.columns_with_missing).length > 0 ? (
@@ -674,6 +821,75 @@ const EDA: React.FC = () => {
 
           {selectedVisualization === 'statistics' && (
             <div>
+              {/* AI Summary Section */}
+              {aiSummaryLoading && (
+                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 mr-2"></div>
+                    <span className="text-green-800">Loading AI statistical insights...</span>
+                  </div>
+                </div>
+              )}
+              
+              {aiSummaryError && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-800">Failed to load AI summary: {String(aiSummaryError)}</p>
+                </div>
+              )}
+              
+              {(() => {
+                // Parse the AI insights data
+                let summaryPoints = null;
+                
+                if (aiSummary?.data?.summary?.summary_points) {
+                  summaryPoints = aiSummary.data.summary.summary_points;
+                } else if (aiSummary?.data?.insights) {
+                  try {
+                    // Extract JSON from the insights string
+                    const insightsStr = aiSummary.data.insights;
+                    const jsonMatch = insightsStr.match(/```json\n([\s\S]*?)\n```/);
+                    if (jsonMatch) {
+                      const parsedData = JSON.parse(jsonMatch[1]);
+                      summaryPoints = parsedData?.summary?.summary_points;
+                    }
+                  } catch (e) {
+                    console.error('Failed to parse AI insights:', e);
+                  }
+                }
+                
+                return summaryPoints && (
+                  <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <h3 className="font-semibold mb-3 text-green-800 flex items-center">
+                      <span className="mr-2">🤖</span>
+                      AI Statistical Insights (10 Key Points)
+                    </h3>
+                    <div className="space-y-2">
+                      {summaryPoints.map((point: string, index: number) => (
+                        <div key={index} className="flex items-start">
+                          <span className="inline-block w-6 h-6 bg-green-600 text-white text-xs rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                            {index + 1}
+                          </span>
+                          <p className="text-green-900 text-sm">{point}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+              
+              {/* Fallback: Show raw AI summary data if structure is different */}
+              {aiSummary && !aiSummary?.data?.summary?.summary_points && (
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <h3 className="font-semibold mb-3 text-yellow-800 flex items-center">
+                    <span className="mr-2">🤖</span>
+                    AI Statistical Summary (Raw)
+                  </h3>
+                  <pre className="text-xs text-yellow-900 bg-yellow-100 p-2 rounded overflow-auto">
+                    {JSON.stringify(aiSummary, null, 2)}
+                  </pre>
+                </div>
+              )}
+              
               <h3 className="font-semibold mb-4">Statistical Analysis</h3>
               
               {statisticalAnalysis ? (

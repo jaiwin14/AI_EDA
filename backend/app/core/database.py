@@ -152,6 +152,27 @@ class DatabaseManager:
             logger.error(f"Error getting dataset metadata: {str(e)}")
             return None
     
+    async def get_dataset(self, dataset_id: str) -> Optional[Dict[str, Any]]:
+        """Get dataset data by ID"""
+        if not self.connected:
+            return None
+        
+        try:
+            # First try to get from database
+            result = self.client.table('datasets').select('*').eq('id', dataset_id).execute()
+            if result.data:
+                dataset_metadata = result.data[0]
+                # Try to load the actual data from local storage using filename
+                filename = dataset_metadata.get('filename')
+                if filename:
+                    # Remove .json extension if present and add dataset_ prefix
+                    dataset_filename = f"dataset_{dataset_id}"
+                    return local_storage.load_json(dataset_filename)
+            return None
+        except Exception as e:
+            logger.error(f"Error getting dataset: {str(e)}")
+            return None
+    
     # EDA results operations
     async def save_eda_results(self, dataset_id: str, analysis_type: str, 
                              results: Dict[str, Any]) -> Optional[str]:

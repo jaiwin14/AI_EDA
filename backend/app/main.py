@@ -21,6 +21,7 @@ from app.api.eda import router as eda_router
 from app.api.models import router as models_router
 from app.api.predictions import router as predictions_router
 from app.api.explanations import router as explanations_router
+from app.api.ai_insights import router as ai_insights_router
 from app.core.config import settings
 from app.core.database import init_db
 
@@ -97,7 +98,8 @@ async def root():
             "eda": "/api/v1/eda",
             "models": "/api/v1/models",
             "predictions": "/api/v1/predict",
-            "explanations": "/api/v1/explain"
+            "explanations": "/api/v1/explain",
+            "ai_insights": "/api/v1/ai-insights"
         }
     }
 
@@ -107,6 +109,7 @@ app.include_router(eda_router, prefix="/api/v1", tags=["eda"])
 app.include_router(models_router, prefix="/api/v1", tags=["models"])
 app.include_router(predictions_router, prefix="/api/v1", tags=["predictions"])
 app.include_router(explanations_router, prefix="/api/v1", tags=["explanations"])
+app.include_router(ai_insights_router, prefix="/api/v1", tags=["ai-insights"])
 
 # Global exception handler
 @app.exception_handler(Exception)

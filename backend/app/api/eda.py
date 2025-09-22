@@ -3,21 +3,23 @@ EDA API Endpoints
 Automated exploratory data analysis endpoints
 """
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Query
+from fastapi.responses import JSONResponse, FileResponse
 import pandas as pd
 import numpy as np
 from pathlib import Path
 import logging
 from typing import Dict, Any, List, Optional
 import json
+from datetime import datetime
 
 from app.core.config import settings
 from app.utils.json_utils import serialize_for_json
 from app.core.database import db_manager, local_storage
-from app.ml.eda_pipeline import EDAProcessor
-from app.ml.visualization_generator import VisualizationGenerator
 from app.api.upload import load_dataset
+from ..ml.eda_processor import EDAProcessor
+from ..ml.visualization_generator import VisualizationGenerator
+from ..ml.ai_agent import ai_agent
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -797,3 +799,115 @@ async def get_eda_report(dataset_id: str):
             status_code=500,
             detail="Failed to retrieve EDA report"
         )
+
+@router.get("/eda/{dataset_id}/ai-overview")
+async def get_ai_overview(dataset_id: str) -> Dict[str, Any]:
+    """
+    Get AI-generated overview of the dataset (2-line summary)
+    """
+    try:
+        # Get dataset info from database or local storage
+        dataset_info = await db_manager.get_dataset_metadata(dataset_id)
+        if not dataset_info:
+            # Fallback to local storage
+            dataset_info = local_storage.load_json(f"dataset_{dataset_id}")
+            if not dataset_info:
+                raise HTTPException(status_code=404, detail="Dataset not found")
+        
+        # Get file path
+        filepath = Path(settings.UPLOAD_DIR) / dataset_info["filename"]
+        if not filepath.exists():
+            raise HTTPException(status_code=404, detail="Dataset file not found")
+        
+        # Load dataset
+        df = await load_dataset(filepath)
+        
+        # Generate AI overview using new AI agent
+        overview_result = await ai_agent.analyze_dataset_overview(df, dataset_info.get("original_filename", "dataset"))
+        
+        return {
+            "dataset_id": dataset_id,
+            "ai_overview": overview_result.get("data", {}),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to generate AI overview for dataset {dataset_id}: {str(e)}")
+        # Return fallback response
+        return {
+            "dataset_id": dataset_id,
+            "ai_overview": {
+                "overview": {
+                    "overview_line_1": "This dataset contains structured data for analysis.",
+                    "overview_line_2": "AI overview generation is temporarily unavailable."
+                }
+            },
+            "timestamp": datetime.utcnow().isoformat(),
+            "fallback": True
+        }
+
+@router.get("/eda/{dataset_id}/ai-summary")
+async def get_ai_summary(dataset_id: str) -> Dict[str, Any]:
+    """
+    Get AI-generated statistical summary of the dataset (10 key insights)
+    """
+    try:
+        # Get dataset info from database or local storage
+        dataset_info = await db_manager.get_dataset_metadata(dataset_id)
+        if not dataset_info:
+            # Fallback to local storage
+            dataset_info = local_storage.load_json(f"dataset_{dataset_id}")
+            if not dataset_info:
+                raise HTTPException(status_code=404, detail="Dataset not found")
+        
+        # Get file path
+        filepath = Path(settings.UPLOAD_DIR) / dataset_info["filename"]
+        if not filepath.exists():
+            raise HTTPException(status_code=404, detail="Dataset file not found")
+        
+        # Load dataset
+        df = await load_dataset(filepath)
+        
+        # Initialize EDA processor for basic stats
+        eda_processor = EDAProcessor()
+        basic_stats = await eda_processor.generate_basic_statistics(df)
+        
+        # Generate AI summary using new AI agent
+        summary_result = await ai_agent.analyze_statistical_summary(df, basic_stats, dataset_info.get("original_filename", "dataset"))
+        
+        return {
+            "dataset_id": dataset_id,
+            "ai_summary": summary_result.get("data", {}),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to generate AI summary for dataset {dataset_id}: {str(e)}")
+        # Return fallback response
+        fallback_points = [
+            "Dataset contains multiple columns with mixed data types",
+            "Missing values detected in some columns requiring attention", 
+            "Numerical columns show varying distributions and ranges",
+            "Categorical variables have different cardinality levels",
+            "Data quality assessment shows areas for improvement",
+            "Statistical analysis reveals interesting patterns in the data",
+            "Correlation analysis may reveal relationships between variables",
+            "Outlier detection could identify anomalous data points",
+            "Feature engineering opportunities exist for model improvement",
+            "Further domain expertise recommended for deeper insights"
+        ]
+        
+        return {
+            "dataset_id": dataset_id,
+            "ai_summary": {
+                "summary": {
+                    "summary_points": fallback_points
+                }
+            },
+            "timestamp": datetime.utcnow().isoformat(),
+            "fallback": True
+        }
