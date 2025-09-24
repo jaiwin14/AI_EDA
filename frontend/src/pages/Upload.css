@@ -1,0 +1,209 @@
+/* Upload.css - Minimalist Two-Column Redesign */
+
+/* --- Page Layout --- */
+.upload-page-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); /* Flexible columns */
+  gap: 3rem;
+  align-items: flex-start;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1rem 2rem;
+}
+
+.left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem; /* Space between elements in the left column */
+}
+
+/* Responsive layout for smaller screens */
+@media (max-width: 1024px) {
+  .upload-page-layout {
+    grid-template-columns: 1fr; /* Stack columns */
+  }
+}
+
+/* --- Main Header (Left Column) --- */
+.upload-header {
+  text-align: left;
+}
+
+.upload-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 0.5rem;
+}
+
+.upload-header p {
+  font-size: 1.125rem;
+  color: #718096;
+}
+
+/* --- Dropzone Area --- */
+.upload-area {
+  background-color: #f8fafc;
+  border: 2px dashed #e2e8f0;
+  border-radius: 1rem;
+  padding: 3rem;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.upload-area:hover {
+  border-color: #cbd5e0;
+}
+
+.upload-area.is-active {
+  border-color: var(--primary-color, #2d3748);
+  background-color: #f7fafc;
+}
+
+.upload-area.is-uploading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.upload-area .upload-icon {
+  color: #9ca3af;
+  margin: 0 auto 1rem auto;
+  transition: color 0.2s ease;
+}
+
+.upload-area:hover .upload-icon,
+.upload-area.is-active .upload-icon {
+  color: var(--primary-color, #2d3748);
+}
+
+.upload-area .upload-text-main {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.25rem;
+}
+
+.upload-area .upload-text-main.is-active {
+  color: var(--primary-color, #2d3748);
+}
+
+.upload-area .upload-text-hint {
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+/* --- Upload Progress Bar --- */
+.progress-container {
+  margin-top: 1.5rem; /* Only appears when uploading */
+}
+
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+  color: #4a5568;
+}
+
+.progress-bar {
+  width: 100%;
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+  height: 0.5rem;
+}
+
+.progress-bar-inner {
+  background-color: var(--primary-color, #2d3748);
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease-in-out;
+}
+
+/* --- Datasets Table (Right Column) --- */
+.datasets-header {
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.datasets-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.table-container {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0; /* Subtle border for the container */
+  border-radius: 0.75rem;
+  background: white;
+}
+
+.datasets-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.datasets-table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background-color: #f8fafc;
+}
+
+.datasets-table th:first-child {
+  border-top-left-radius: 0.75rem;
+}
+.datasets-table th:last-child {
+  border-top-right-radius: 0.75rem;
+}
+
+.datasets-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.datasets-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.datasets-table td {
+  padding: 1rem;
+  vertical-align: middle;
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.datasets-table .font-medium {
+  font-weight: 500;
+  color: #1a202c;
+}
+
+.table-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* --- Minimalist Instructions (Left Column) --- */
+.minimal-instructions {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.minimal-instructions h3 {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #4a5568;
+  margin-bottom: 0.75rem;
+}
+
+.minimal-instructions p {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  line-height: 1.6;
+}
