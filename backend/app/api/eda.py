@@ -717,6 +717,14 @@ async def generate_visualizations(
             elif viz_type == 'feature_importance':
                 viz = await viz_generator.create_feature_importance_plot(df)
                 visualizations[viz_type] = viz
+                
+            elif viz_type == 'detailed_univariate':
+                viz = await viz_generator.create_detailed_univariate_analysis(df)
+                visualizations[viz_type] = viz
+                
+            elif viz_type == 'bivariate_analysis':
+                viz = await viz_generator.create_bivariate_analysis(df)
+                visualizations[viz_type] = viz
         
         return serialize_for_json({
             "dataset_id": dataset_id,
