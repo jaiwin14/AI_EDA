@@ -25,6 +25,8 @@ const CorrelationInsights: React.FC<CorrelationInsightsProps> = ({
 
   const correlationInsights = enhancedData?.data?.correlation_insights;
   const fallbackInsights = enhancedData?.data?.insights || [];
+  const strongCorrelations = enhancedData?.data?.strong_correlations || [];
+  const allCorrelations = enhancedData?.data?.correlations || [];
   const visualizationData = propCorrelationData;
 
   return (
@@ -92,21 +94,21 @@ const CorrelationInsights: React.FC<CorrelationInsightsProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-blue-50 rounded-lg p-4">
                       <div className="text-2xl font-bold text-blue-600">
-                        {correlationInsights?.strong_positive_correlations?.length || 0}
+                        {strongCorrelations.filter((c: any) => c.correlation > 0).length}
                       </div>
                       <div className="text-sm text-blue-800">Strong Positive Correlations</div>
                     </div>
                     <div className="bg-red-50 rounded-lg p-4">
                       <div className="text-2xl font-bold text-red-600">
-                        {correlationInsights?.strong_negative_correlations?.length || 0}
+                        {strongCorrelations.filter((c: any) => c.correlation < 0).length}
                       </div>
                       <div className="text-sm text-red-800">Strong Negative Correlations</div>
                     </div>
-                    <div className="bg-yellow-50 rounded-lg p-4">
-                      <div className="text-2xl font-bold text-yellow-600">
-                        {correlationInsights?.multicollinearity_concerns?.length || 0}
+                    <div className="bg-green-50 rounded-lg p-4">
+                      <div className="text-2xl font-bold text-green-600">
+                        {allCorrelations.length}
                       </div>
-                      <div className="text-sm text-yellow-800">Multicollinearity Concerns</div>
+                      <div className="text-sm text-green-800">Total Correlations</div>
                     </div>
                   </div>
                 </div>

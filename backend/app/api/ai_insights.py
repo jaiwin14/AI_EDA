@@ -142,7 +142,6 @@ async def _perform_analysis(
         dataset = await get_dataset(dataset_id)
         df = pd.DataFrame(dataset['data'])
         
-        # Generate insights based on analysis type
         if analysis_type == AnalysisType.DATASET_OVERVIEW:
             result = await ai_agent.analyze_dataset_overview(df, dataset_id)
         elif analysis_type == AnalysisType.STATISTICAL_SUMMARY:
@@ -156,7 +155,50 @@ async def _perform_analysis(
                     detail="At least two numeric columns are required for correlation analysis"
                 )
             corr_matrix = numeric_df.corr()
-            result = await ai_agent.analyze_correlations(corr_matrix)
+            
+            # Simple correlation analysis without AI agent issues
+            correlations = []
+            for i in range(len(corr_matrix.columns)):
+                for j in range(i+1, len(corr_matrix.columns)):
+                    corr_val = corr_matrix.iloc[i, j]
+                    if not pd.isna(corr_val):
+                        correlations.append({
+                            "var1": corr_matrix.columns[i],
+                            "var2": corr_matrix.columns[j], 
+                            "correlation": round(float(corr_val), 3)
+                        })
+            
+            # Sort by absolute correlation value and take top 10
+            correlations.sort(key=lambda x: abs(x["correlation"]), reverse=True)
+            top_correlations = correlations[:10]
+            
+            # Create simple insights
+            strong_correlations = [c for c in top_correlations if abs(c["correlation"]) > 0.7]
+            moderate_correlations = [c for c in top_correlations if 0.3 <= abs(c["correlation"]) <= 0.7]
+            
+            insights = []
+            if strong_correlations:
+                insights.append(f"Found {len(strong_correlations)} strong correlations (>0.7)")
+                for c in strong_correlations[:3]:
+                    direction = "positive" if c["correlation"] > 0 else "negative"
+                    insights.append(f"Strong {direction} correlation between {c['var1']} and {c['var2']} ({c['correlation']})")
+            
+            if moderate_correlations:
+                insights.append(f"Found {len(moderate_correlations)} moderate correlations (0.3-0.7)")
+            
+            insights.append(f"Total numeric variables analyzed: {len(corr_matrix.columns)}")
+            insights.append("Consider investigating strong correlations for potential multicollinearity")
+            
+            result = {
+                "success": True,
+                "analysis_type": "correlation_insights",
+                "data": {
+                    "insights": insights,
+                    "correlations": top_correlations,
+                    "strong_correlations": strong_correlations,
+                    "correlation_matrix": corr_matrix.to_dict()
+                }
+            }
         elif analysis_type == AnalysisType.MISSING_VALUES_ANALYSIS:
             missing_data = {k: int(v) for k, v in df.isnull().sum().to_dict().items()}
             result = await ai_agent.analyze_missing_values(missing_data)
