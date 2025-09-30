@@ -113,7 +113,7 @@ Respond in exactly this JSON format:
 }}
 """,
             
-            PromptTemplate.CORRELATION_INSIGHTS.value: """
+                        PromptTemplate.CORRELATION_INSIGHTS.value: """
 You are analyzing correlations in a dataset. Provide insights about relationships between variables.
 
 Correlation Data:
@@ -130,12 +130,12 @@ Respond in JSON format:
     "insights": [
         "Correlation insight 1",
         "Correlation insight 2",
-        "..."
+        "Correlation insight 3",
+        "Correlation insight 4",
+        "Correlation insight 5"
     ]
 }}
-""",
-            
-            PromptTemplate.MISSING_VALUES_ANALYSIS.value: """
+""",PromptTemplate.MISSING_VALUES_ANALYSIS.value: """
 Analyze missing value patterns and provide recommendations.
 
 Missing Values Data:

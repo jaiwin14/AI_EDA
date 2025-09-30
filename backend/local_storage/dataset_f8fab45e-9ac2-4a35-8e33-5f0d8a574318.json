@@ -1,0 +1,157 @@
+{
+  "dataset_id": "f8fab45e-9ac2-4a35-8e33-5f0d8a574318",
+  "filename": "f8fab45e-9ac2-4a35-8e33-5f0d8a574318.xlsx",
+  "original_filename": "batch_railway_data_mj_final (1).xlsx",
+  "metadata": {
+    "shape": [
+      36,
+      32
+    ],
+    "columns": [
+      "element_id",
+      "element_type",
+      "timestamp",
+      "version",
+      "changeset",
+      "user",
+      "railway_type",
+      "name",
+      "operator",
+      "gauge",
+      "electrified",
+      "maxspeed",
+      "usage",
+      "service",
+      "tracks",
+      "frequency",
+      "voltage",
+      "bridge",
+      "tunnel",
+      "cutting",
+      "embankment",
+      "layer",
+      "country",
+      "state",
+      "city",
+      "description",
+      "wikipedia",
+      "wikidata",
+      "geometry",
+      "lat",
+      "lon",
+      "all_tags"
+    ],
+    "dtypes": {
+      "element_id": "int64",
+      "element_type": "object",
+      "timestamp": "object",
+      "version": "int64",
+      "changeset": "int64",
+      "user": "object",
+      "railway_type": "object",
+      "name": "object",
+      "operator": "object",
+      "gauge": "float64",
+      "electrified": "object",
+      "maxspeed": "float64",
+      "usage": "object",
+      "service": "object",
+      "tracks": "float64",
+      "frequency": "float64",
+      "voltage": "float64",
+      "bridge": "float64",
+      "tunnel": "float64",
+      "cutting": "float64",
+      "embankment": "float64",
+      "layer": "float64",
+      "country": "float64",
+      "state": "float64",
+      "city": "float64",
+      "description": "float64",
+      "wikipedia": "float64",
+      "wikidata": "float64",
+      "geometry": "object",
+      "lat": "float64",
+      "lon": "float64",
+      "all_tags": "object"
+    },
+    "missing_values": {
+      "element_id": 0,
+      "element_type": 0,
+      "timestamp": 0,
+      "version": 0,
+      "changeset": 0,
+      "user": 0,
+      "railway_type": 2,
+      "name": 24,
+      "operator": 32,
+      "gauge": 2,
+      "electrified": 8,
+      "maxspeed": 36,
+      "usage": 24,
+      "service": 14,
+      "tracks": 36,
+      "frequency": 12,
+      "voltage": 12,
+      "bridge": 36,
+      "tunnel": 36,
+      "cutting": 36,
+      "embankment": 36,
+      "layer": 36,
+      "country": 36,
+      "state": 36,
+      "city": 36,
+      "description": 36,
+      "wikipedia": 36,
+      "wikidata": 36,
+      "geometry": 0,
+      "lat": 36,
+      "lon": 36,
+      "all_tags": 0
+    },
+    "memory_usage": 48580,
+    "validation_results": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "Columns with significant outliers (>10%): ['version']"
+      ],
+      "recommendations": [
+        "Review missing value patterns and consider advanced imputation",
+        "Consider removing duplicate rows",
+        "Consider removing constant columns as they provide no information",
+        "Consider outlier treatment strategies"
+      ],
+      "validation_summary": {
+        "structure": {
+          "is_valid": true,
+          "errors": [],
+          "warnings": [],
+          "recommendations": []
+        },
+        "data_quality": {
+          "is_valid": true,
+          "warnings": [
+            "High missing value percentage: 58.2%",
+            "Found 18 duplicate rows (50.0%)",
+            "Constant/near-constant columns found: ['element_type', 'railway_type', 'operator', 'gauge', 'electrified', 'maxspeed', 'tracks', 'frequency', 'voltage', 'bridge', 'tunnel', 'cutting', 'embankment', 'layer', 'country', 'state', 'city', 'description', 'wikipedia', 'wikidata', 'lat', 'lon']"
+          ],
+          "recommendations": [
+            "Review missing value patterns and consider advanced imputation",
+            "Consider removing duplicate rows",
+            "Consider removing constant columns as they provide no information"
+          ]
+        },
+        "ml_readiness": {
+          "warnings": [
+            "Columns with significant outliers (>10%): ['version']"
+          ],
+          "recommendations": [
+            "Consider outlier treatment strategies"
+          ]
+        }
+      }
+    },
+    "upload_timestamp": "2025-09-30T17:11:17.356196"
+  }
+}

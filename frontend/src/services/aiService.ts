@@ -73,6 +73,28 @@ class AIService {
   }
 
   /**
+   * Get enhanced correlation analysis with AI insights
+   */
+  async getEnhancedCorrelationAnalysis(datasetId: string): Promise<any> {
+    const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/correlations`);
+    if (!response.ok) {
+      throw new Error(`Failed to get enhanced correlation analysis: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Get correlation matrix only
+   */
+  async getCorrelationMatrix(datasetId: string): Promise<any> {
+    const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/correlations`);
+    if (!response.ok) {
+      throw new Error(`Failed to get correlation matrix: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
    * Get AI-powered missing values insights
    */
   async getMissingValuesInsights(datasetId: string): Promise<AIInsightResponse> {

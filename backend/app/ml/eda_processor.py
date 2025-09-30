@@ -120,7 +120,7 @@ class EDAProcessor:
     
     async def analyze_correlations(self, df: pd.DataFrame) -> Dict[str, Any]:
         """
-        Analyze correlations between numeric variables
+        Analyze correlations between numeric variables with enhanced detection
         
         Args:
             df: Input DataFrame
@@ -129,24 +129,50 @@ class EDAProcessor:
             Dict containing correlation analysis
         """
         try:
-            numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+            # Convert string numeric columns to actual numeric types
+            df_processed = df.copy()
             
-            if len(numeric_cols) < 2:
+            # Try to convert columns that look numeric but are stored as strings
+            for col in df_processed.columns:
+                if df_processed[col].dtype == 'object':
+                    try:
+                        # Remove common non-numeric characters and try conversion
+                        cleaned_series = df_processed[col].astype(str).str.replace(',', '').str.replace('$', '').str.replace('%', '')
+                        numeric_series = pd.to_numeric(cleaned_series, errors='coerce')
+                        
+                        # If more than 50% of values are numeric, treat as numeric
+                        if numeric_series.notna().sum() / len(numeric_series) > 0.5:
+                            df_processed[col] = numeric_series
+                    except:
+                        continue
+            
+            # Get numeric columns including converted ones
+            numeric_cols = df_processed.select_dtypes(include=[np.number]).columns.tolist()
+            
+            # Remove columns that are mostly NaN or constant
+            valid_numeric_cols = []
+            for col in numeric_cols:
+                col_data = df_processed[col].dropna()
+                if len(col_data) > 1 and col_data.nunique() > 1:  # More than 1 unique value
+                    valid_numeric_cols.append(col)
+            
+            if len(valid_numeric_cols) < 2:
                 return {
                     "correlation_matrix": {},
                     "strong_correlations": [],
-                    "message": "Not enough numeric columns for correlation analysis"
+                    "numeric_columns": valid_numeric_cols,
+                    "message": f"Not enough valid numeric columns for correlation analysis. Found {len(valid_numeric_cols)} valid numeric columns: {valid_numeric_cols}"
                 }
             
-            # Calculate correlation matrix
-            corr_matrix = df[numeric_cols].corr()
+            # Calculate correlation matrix using only valid numeric columns
+            corr_matrix = df_processed[valid_numeric_cols].corr()
             
             # Find strong correlations (> 0.7 or < -0.7)
             strong_correlations = []
             for i in range(len(corr_matrix.columns)):
                 for j in range(i+1, len(corr_matrix.columns)):
                     corr_val = corr_matrix.iloc[i, j]
-                    if abs(corr_val) > 0.7:
+                    if not pd.isna(corr_val) and abs(corr_val) > 0.7:
                         strong_correlations.append({
                             "variable1": corr_matrix.columns[i],
                             "variable2": corr_matrix.columns[j],
@@ -156,7 +182,14 @@ class EDAProcessor:
             return {
                 "correlation_matrix": corr_matrix.to_dict(),
                 "strong_correlations": strong_correlations,
-                "numeric_columns": numeric_cols
+                "numeric_columns": valid_numeric_cols,
+                "total_correlations": len(strong_correlations),
+                "correlation_summary": {
+                    "total_numeric_columns": len(valid_numeric_cols),
+                    "strong_positive": len([c for c in strong_correlations if c["correlation"] > 0.7]),
+                    "strong_negative": len([c for c in strong_correlations if c["correlation"] < -0.7]),
+                    "max_correlation": max([abs(c["correlation"]) for c in strong_correlations]) if strong_correlations else 0
+                }
             }
             
         except Exception as e:

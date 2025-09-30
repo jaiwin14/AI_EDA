@@ -13,6 +13,7 @@ import HistogramKDEChart from '../components/eda/HistogramKDEChart';
 import BoxPlotChart from '../components/eda/BoxPlotChart';
 import StatisticsTable from '../components/eda/StatisticsTable';
 import PieChart from '../components/eda/PieChart';
+import CorrelationInsights from '../components/eda/CorrelationInsights';
 
 // Numerical Variable Component
 const NumericalVariableCard: React.FC<{ columnName: string; data: any }> = ({ columnName, data }) => {
@@ -1292,26 +1293,13 @@ const EDA: React.FC = () => {
               <div className="mb-8">
                 <h4 className="font-semibold mb-4 text-xl text-orange-700">🔗 Bivariate Analysis</h4>
                 
-                {/* Correlation Heatmap */}
-                {visualizations?.visualizations?.correlation_heatmap?.figure && (
-                  <div className="mb-6">
-                    <h5 className="font-medium mb-3 text-lg text-blue-600">📈 Correlation Matrix</h5>
-                    <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                      <Plot
-                        data={visualizations.visualizations.correlation_heatmap.figure.data}
-                        layout={{
-                          ...visualizations.visualizations.correlation_heatmap.figure.layout,
-                          autosize: true,
-                          responsive: true,
-                          height: 600
-                        }}
-                        useResizeHandler={true}
-                        style={{ width: '100%', height: '600px' }}
-                        config={{ displayModeBar: true, responsive: true }}
-                      />
-                    </div>
-                  </div>
-                )}
+                {/* Enhanced Correlation Analysis with AI Insights */}
+                <div className="mb-6">
+                  <CorrelationInsights 
+                    datasetId={datasetId!} 
+                    correlationData={visualizations?.visualizations?.correlation_heatmap}
+                  />
+                </div>
                 
                 {/* Pairplot for Numeric Variables */}
                 {statisticalAnalysis?.basic_statistics?.numeric_summary?.describe && 
@@ -1407,25 +1395,10 @@ const EDA: React.FC = () => {
           )}
 
           {selectedVisualization === 'correlations' && (
-            <div>
-              <h3 className="font-semibold mb-4">Correlation Analysis</h3>
-              {visualizations?.visualizations?.correlation_heatmap?.figure ? (
-                <div className="mb-6">
-                  <Plot
-                    data={visualizations.visualizations.correlation_heatmap.figure.data}
-                    layout={{
-                      ...visualizations.visualizations.correlation_heatmap.figure.layout,
-                      autosize: true,
-                      responsive: true,
-                    }}
-                    useResizeHandler={true}
-                    style={{ width: '100%', height: '500px' }}
-                  />
-                </div>
-              ) : (
-                <div className="text-gray-500">No correlation data available</div>
-              )}
-            </div>
+            <CorrelationInsights 
+              datasetId={datasetId!} 
+              correlationData={visualizations?.visualizations?.correlation_heatmap}
+            />
           )}
 
           {selectedVisualization === 'missing' && (
