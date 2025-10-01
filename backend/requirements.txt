@@ -22,6 +22,7 @@ category-encoders>=2.5.0
 imbalanced-learn>=0.11.0
 pyarrow>=13.0.0
 openpyxl>=3.1.0
+xlrd>=2.0.0  # For Excel file support
 
 # Database and storage
 supabase>=2.0.0

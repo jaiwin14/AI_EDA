@@ -23,6 +23,7 @@ from app.api.predictions import router as predictions_router
 from app.api.explanations import router as explanations_router
 from app.api.ai_insights import router as ai_insights_router
 from app.api.correlation_insights import router as correlation_router
+from app.api.analyze import router as analyze_router
 from app.core.config import settings
 from app.core.database import init_db
 
@@ -106,6 +107,7 @@ async def root():
 
 # Include API routers
 app.include_router(upload_router, prefix="/api/v1", tags=["upload"])
+app.include_router(analyze_router, prefix="/api/v1", tags=["analyze"])
 app.include_router(eda_router, prefix="/api/v1", tags=["eda"])
 app.include_router(models_router, prefix="/api/v1", tags=["models"])
 app.include_router(predictions_router, prefix="/api/v1", tags=["predictions"])
