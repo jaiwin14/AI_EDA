@@ -190,14 +190,10 @@ async def _perform_analysis(
             insights.append("Consider investigating strong correlations for potential multicollinearity")
             
             result = {
-                "success": True,
-                "analysis_type": "correlation_insights",
-                "data": {
-                    "insights": insights,
-                    "correlations": top_correlations,
-                    "strong_correlations": strong_correlations,
-                    "correlation_matrix": corr_matrix.to_dict()
-                }
+                "insights": insights,
+                "correlations": top_correlations,
+                "strong_correlations": strong_correlations,
+                "correlation_matrix": corr_matrix.to_dict()
             }
         elif analysis_type == AnalysisType.MISSING_VALUES_ANALYSIS:
             missing_data = {k: int(v) for k, v in df.isnull().sum().to_dict().items()}

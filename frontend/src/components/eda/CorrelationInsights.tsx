@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Plot from 'react-plotly.js';
 import aiService from '../../services/aiService';
+
+interface CorrelationData {
+  var1: string;
+  var2: string;
+  correlation: number;
+}
 
 interface CorrelationInsightsProps {
   datasetId: string;
@@ -25,9 +31,93 @@ const CorrelationInsights: React.FC<CorrelationInsightsProps> = ({
 
   const correlationInsights = enhancedData?.data?.correlation_insights;
   const fallbackInsights = enhancedData?.data?.insights || [];
-  const strongCorrelations = enhancedData?.data?.strong_correlations || [];
-  const allCorrelations = enhancedData?.data?.correlations || [];
+  const allCorrelations: CorrelationData[] = enhancedData?.data?.correlations || [];
+  const correlationMatrix = enhancedData?.data?.correlation_matrix || {};
   const visualizationData = propCorrelationData;
+
+  // Debug logging
+  React.useEffect(() => {
+    if (enhancedData) {
+      console.log('🔍 Correlation Debug - Enhanced Data:', enhancedData);
+      console.log('📊 Correlations found:', allCorrelations.length);
+      console.log('💡 Insights found:', fallbackInsights.length);
+      console.log('🔗 Matrix keys:', Object.keys(correlationMatrix).length);
+    }
+  }, [enhancedData, allCorrelations, fallbackInsights, correlationMatrix]);
+
+  // Process correlation data for better display
+  const processedCorrelations = useMemo(() => {
+    if (!allCorrelations.length) return { strong: [], moderate: [], weak: [] };
+    
+    const strong = allCorrelations.filter((c: CorrelationData) => Math.abs(c.correlation) >= 0.7);
+    const moderate = allCorrelations.filter((c: CorrelationData) => Math.abs(c.correlation) >= 0.3 && Math.abs(c.correlation) < 0.7);
+    const weak = allCorrelations.filter((c: CorrelationData) => Math.abs(c.correlation) < 0.3);
+    
+    return { strong, moderate, weak };
+  }, [allCorrelations]);
+
+  // Generate insights based on correlation data
+  const generateInsights = useMemo(() => {
+    if (!allCorrelations.length) return [];
+    
+    const insights = [];
+    const totalVars = Object.keys(correlationMatrix).length;
+    
+    // Basic statistics
+    insights.push(`📊 Analyzed ${totalVars} numeric variables with ${allCorrelations.length} correlation pairs`);
+    
+    // Strong correlations
+    if (processedCorrelations.strong.length > 0) {
+      insights.push(`🔴 Found ${processedCorrelations.strong.length} strong correlations (|r| ≥ 0.7)`);
+      const strongestCorr = processedCorrelations.strong[0];
+      const direction = strongestCorr.correlation > 0 ? 'positive' : 'negative';
+      insights.push(`📈 Strongest ${direction} correlation: ${strongestCorr.var1} ↔ ${strongestCorr.var2} (r = ${strongestCorr.correlation.toFixed(3)})`);
+    }
+    
+    // Moderate correlations
+    if (processedCorrelations.moderate.length > 0) {
+      insights.push(`🟡 Found ${processedCorrelations.moderate.length} moderate correlations (0.3 <= |r| < 0.7)`);
+    }
+    
+    // Multicollinearity warning
+    if (processedCorrelations.strong.length > 0) {
+      insights.push(`⚠️ Strong correlations detected - consider checking for multicollinearity in modeling`);
+    }
+    
+    // Data quality insights
+    const positiveCorrs = allCorrelations.filter((c: CorrelationData) => c.correlation > 0).length;
+    const negativeCorrs = allCorrelations.filter((c: CorrelationData) => c.correlation < 0).length;
+    insights.push(`📊 Distribution: ${positiveCorrs} positive, ${negativeCorrs} negative correlations`);
+    
+    return insights;
+  }, [allCorrelations, correlationMatrix, processedCorrelations]);
+
+  // Generate recommendations
+  const generateRecommendations = useMemo(() => {
+    if (!allCorrelations.length) return [];
+    
+    const recommendations = [];
+    
+    // Strong correlation recommendations
+    if (processedCorrelations.strong.length > 0) {
+      recommendations.push('🔍 Investigate strong correlations for potential feature redundancy');
+      recommendations.push('📉 Consider removing highly correlated features to reduce multicollinearity');
+      recommendations.push('🧪 Use techniques like PCA or feature selection to handle correlated features');
+    }
+    
+    // Moderate correlation recommendations
+    if (processedCorrelations.moderate.length > 0) {
+      recommendations.push('📊 Moderate correlations may indicate meaningful relationships worth exploring');
+      recommendations.push('🔬 Consider domain knowledge to interpret moderate correlations');
+    }
+    
+    // General recommendations
+    recommendations.push('📈 Remember: correlation does not imply causation');
+    recommendations.push('🎯 Focus on correlations relevant to your target variable for predictive modeling');
+    recommendations.push('📋 Document significant correlations for stakeholder communication');
+    
+    return recommendations;
+  }, [allCorrelations, processedCorrelations]);
 
   return (
     <div className="space-y-6">
@@ -90,27 +180,73 @@ const CorrelationInsights: React.FC<CorrelationInsightsProps> = ({
                     />
                   </div>
                   
-                  {/* Quick Stats */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-blue-50 rounded-lg p-4">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {strongCorrelations.filter((c: any) => c.correlation > 0).length}
-                      </div>
-                      <div className="text-sm text-blue-800">Strong Positive Correlations</div>
-                    </div>
+                  {/* Enhanced Quick Stats */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="bg-red-50 rounded-lg p-4">
                       <div className="text-2xl font-bold text-red-600">
-                        {strongCorrelations.filter((c: any) => c.correlation < 0).length}
+                        {processedCorrelations.strong.length}
                       </div>
-                      <div className="text-sm text-red-800">Strong Negative Correlations</div>
+                      <div className="text-sm text-red-800">Strong Correlations</div>
+                      <div className="text-xs text-red-600 mt-1">|r| ≥ 0.7</div>
+                    </div>
+                    <div className="bg-yellow-50 rounded-lg p-4">
+                      <div className="text-2xl font-bold text-yellow-600">
+                        {processedCorrelations.moderate.length}
+                      </div>
+                      <div className="text-sm text-yellow-800">Moderate Correlations</div>
+                      <div className="text-xs text-yellow-600 mt-1">0.3 &le; |r| &lt; 0.7</div>
                     </div>
                     <div className="bg-green-50 rounded-lg p-4">
                       <div className="text-2xl font-bold text-green-600">
-                        {allCorrelations.length}
+                        {processedCorrelations.weak.length}
                       </div>
-                      <div className="text-sm text-green-800">Total Correlations</div>
+                      <div className="text-sm text-green-800">Weak Correlations</div>
+                      <div className="text-xs text-green-600 mt-1">|r| &lt; 0.3</div>
+                    </div>
+                    <div className="bg-blue-50 rounded-lg p-4">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {Object.keys(correlationMatrix).length}
+                      </div>
+                      <div className="text-sm text-blue-800">Variables Analyzed</div>
+                      <div className="text-xs text-blue-600 mt-1">Numeric only</div>
                     </div>
                   </div>
+                  
+                  {/* Top Correlations List */}
+                  {allCorrelations.length > 0 && (
+                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                      <h4 className="font-medium text-gray-900 mb-3">🔝 Top Correlations</h4>
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {allCorrelations.slice(0, 10).map((corr: CorrelationData, index: number) => {
+                          const strength = Math.abs(corr.correlation) >= 0.7 ? 'strong' : 
+                                         Math.abs(corr.correlation) >= 0.3 ? 'moderate' : 'weak';
+                          const strengthColor = strength === 'strong' ? 'text-red-600 bg-red-50' :
+                                               strength === 'moderate' ? 'text-yellow-600 bg-yellow-50' :
+                                               'text-green-600 bg-green-50';
+                          const direction = corr.correlation > 0 ? '📈' : '📉';
+                          
+                          return (
+                            <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-lg">{direction}</span>
+                                <span className="font-medium text-sm">
+                                  {corr.var1} ↔ {corr.var2}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${strengthColor}`}>
+                                  {strength}
+                                </span>
+                                <span className="font-mono text-sm font-bold">
+                                  {corr.correlation.toFixed(3)}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-12 text-gray-500">
@@ -150,6 +286,22 @@ const CorrelationInsights: React.FC<CorrelationInsightsProps> = ({
                     <p className="text-sm">No correlation data received from the server.</p>
                   </div>
                 </div>
+              ) : allCorrelations.length === 0 ? (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                  <div className="text-orange-800">
+                    <h4 className="font-medium mb-2">🔍 No Correlations Found</h4>
+                    <p className="text-sm">The dataset may not have enough numeric variables or correlations are too weak to display.</p>
+                    <details className="mt-3">
+                      <summary className="cursor-pointer text-sm font-medium">Debug Information</summary>
+                      <div className="mt-2 text-xs bg-orange-100 p-2 rounded">
+                        <p>Response received: {enhancedData ? 'Yes' : 'No'}</p>
+                        <p>Data structure: {JSON.stringify(Object.keys(enhancedData?.data || {}))}</p>
+                        <p>Correlations array length: {allCorrelations.length}</p>
+                        <p>Insights array length: {fallbackInsights.length}</p>
+                      </div>
+                    </details>
+                  </div>
+                </div>
               ) : (
                 <>
                   {/* Debug Data Structure */}
@@ -158,6 +310,11 @@ const CorrelationInsights: React.FC<CorrelationInsightsProps> = ({
                     <pre className="text-xs mt-2 bg-gray-100 p-2 rounded overflow-auto max-h-40">
                       {JSON.stringify(enhancedData, null, 2)}
                     </pre>
+                    <div className="mt-2 text-xs text-gray-600">
+                      <p>Correlations found: {allCorrelations.length}</p>
+                      <p>Insights found: {fallbackInsights.length}</p>
+                      <p>Matrix keys: {Object.keys(correlationMatrix).length}</p>
+                    </div>
                   </details>
 
                   {/* Summary */}
@@ -173,7 +330,7 @@ const CorrelationInsights: React.FC<CorrelationInsightsProps> = ({
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                       <h4 className="font-medium text-green-900 mb-3">📈 Strong Positive Correlations</h4>
                       <div className="space-y-3">
-                        {correlationInsights.strong_positive_correlations.map((corr, index) => (
+                        {correlationInsights.strong_positive_correlations.map((corr: any, index: number) => (
                           <div key={index} className="bg-white rounded-lg p-3 border border-green-100">
                             <div className="flex justify-between items-start mb-2">
                               <span className="font-medium text-gray-900">
@@ -195,7 +352,7 @@ const CorrelationInsights: React.FC<CorrelationInsightsProps> = ({
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                       <h4 className="font-medium text-red-900 mb-3">📉 Strong Negative Correlations</h4>
                       <div className="space-y-3">
-                        {correlationInsights.strong_negative_correlations.map((corr, index) => (
+                        {correlationInsights.strong_negative_correlations.map((corr: any, index: number) => (
                           <div key={index} className="bg-white rounded-lg p-3 border border-red-100">
                             <div className="flex justify-between items-start mb-2">
                               <span className="font-medium text-gray-900">
@@ -212,18 +369,104 @@ const CorrelationInsights: React.FC<CorrelationInsightsProps> = ({
                     </div>
                   )}
 
-                  {/* Key Insights */}
-                  {(correlationInsights?.key_insights?.length > 0 || fallbackInsights.length > 0) && (
+                  {/* Enhanced Key Insights */}
+                  {(generateInsights.length > 0 || fallbackInsights.length > 0) && (
                     <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                       <h4 className="font-medium text-purple-900 mb-3">🔍 Key Insights</h4>
-                      <ul className="space-y-2">
-                        {(correlationInsights?.key_insights || fallbackInsights).map((insight, index) => (
-                          <li key={index} className="flex items-start">
-                            <span className="text-purple-600 mr-2">•</span>
-                            <span className="text-purple-800">{insight}</span>
-                          </li>
+                      <div className="space-y-3">
+                        {generateInsights.map((insight: string, index: number) => (
+                          <div key={index} className="flex items-start bg-white rounded-lg p-3 border border-purple-100">
+                            <span className="text-purple-600 mr-3 mt-0.5">•</span>
+                            <span className="text-purple-800 text-sm leading-relaxed">{insight}</span>
+                          </div>
                         ))}
-                      </ul>
+                        {fallbackInsights.map((insight: string, index: number) => (
+                          <div key={`fallback-${index}`} className="flex items-start bg-white rounded-lg p-3 border border-purple-100">
+                            <span className="text-purple-600 mr-3 mt-0.5">•</span>
+                            <span className="text-purple-800 text-sm leading-relaxed">{insight}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Correlation Strength Breakdown */}
+                  {allCorrelations.length > 0 && (
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                      <h4 className="font-medium text-indigo-900 mb-3">📊 Correlation Strength Analysis</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Strong Correlations */}
+                        {processedCorrelations.strong.length > 0 && (
+                          <div className="bg-white rounded-lg p-3 border border-red-200">
+                            <h5 className="font-medium text-red-900 mb-2 flex items-center">
+                              🔴 Strong (|r| ≥ 0.7)
+                            </h5>
+                            <div className="space-y-1 max-h-32 overflow-y-auto">
+                              {processedCorrelations.strong.map((corr: CorrelationData, index: number) => (
+                                <div key={index} className="text-xs">
+                                  <div className="font-medium text-gray-900">
+                                    {corr.var1} ↔ {corr.var2}
+                                  </div>
+                                  <div className="text-red-600 font-mono">
+                                    r = {corr.correlation.toFixed(3)}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Moderate Correlations */}
+                        {processedCorrelations.moderate.length > 0 && (
+                          <div className="bg-white rounded-lg p-3 border border-yellow-200">
+                            <h5 className="font-medium text-yellow-900 mb-2 flex items-center">
+                              🟡 Moderate (0.3 &le; |r| &lt; 0.7)
+                            </h5>
+                            <div className="space-y-1 max-h-32 overflow-y-auto">
+                              {processedCorrelations.moderate.slice(0, 5).map((corr: CorrelationData, index: number) => (
+                                <div key={index} className="text-xs">
+                                  <div className="font-medium text-gray-900">
+                                    {corr.var1} ↔ {corr.var2}
+                                  </div>
+                                  <div className="text-yellow-600 font-mono">
+                                    r = {corr.correlation.toFixed(3)}
+                                  </div>
+                                </div>
+                              ))}
+                              {processedCorrelations.moderate.length > 5 && (
+                                <div className="text-xs text-yellow-600 italic">
+                                  +{processedCorrelations.moderate.length - 5} more...
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Summary Stats */}
+                        <div className="bg-white rounded-lg p-3 border border-indigo-200">
+                          <h5 className="font-medium text-indigo-900 mb-2">📈 Summary</h5>
+                          <div className="space-y-1 text-xs">
+                            <div className="flex justify-between">
+                              <span>Positive:</span>
+                              <span className="font-medium">
+                                {allCorrelations.filter((c: CorrelationData) => c.correlation > 0).length}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Negative:</span>
+                              <span className="font-medium">
+                                {allCorrelations.filter((c: CorrelationData) => c.correlation < 0).length}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Avg |r|:</span>
+                              <span className="font-medium font-mono">
+                                {(allCorrelations.reduce((sum: number, c: CorrelationData) => sum + Math.abs(c.correlation), 0) / allCorrelations.length).toFixed(3)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -232,7 +475,7 @@ const CorrelationInsights: React.FC<CorrelationInsightsProps> = ({
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                       <h4 className="font-medium text-yellow-900 mb-3">⚠️ Multicollinearity Concerns</h4>
                       <ul className="space-y-2">
-                        {correlationInsights.multicollinearity_concerns.map((concern, index) => (
+                        {correlationInsights.multicollinearity_concerns.map((concern: string, index: number) => (
                           <li key={index} className="flex items-start">
                             <span className="text-yellow-600 mr-2">•</span>
                             <span className="text-yellow-800">{concern}</span>
@@ -246,55 +489,122 @@ const CorrelationInsights: React.FC<CorrelationInsightsProps> = ({
             </div>
           )}
 
-          {/* Recommendations Tab */}
+          {/* Enhanced Recommendations Tab */}
           {activeTab === 'recommendations' && (
             <div className="space-y-6">
-              {correlationInsights?.recommendations?.length > 0 ? (
+              {/* AI-Generated Recommendations */}
+              {generateRecommendations.length > 0 && (
                 <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-                  <h4 className="font-medium text-indigo-900 mb-3">💡 AI Recommendations</h4>
+                  <h4 className="font-medium text-indigo-900 mb-3">🤖 AI-Generated Recommendations</h4>
                   <div className="space-y-3">
-                    {correlationInsights.recommendations.map((recommendation, index) => (
-                      <div key={index} className="bg-white rounded-lg p-3 border border-indigo-100">
+                    {generateRecommendations.map((recommendation, index) => (
+                      <div key={index} className="bg-white rounded-lg p-4 border border-indigo-100 shadow-sm">
                         <div className="flex items-start">
-                          <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-xs font-medium mr-3 mt-0.5">
+                          <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-xs font-medium mr-3 mt-0.5 min-w-[24px] text-center">
                             {index + 1}
                           </span>
-                          <span className="text-indigo-800">{recommendation}</span>
+                          <span className="text-indigo-800 text-sm leading-relaxed">{recommendation}</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500">
-                  <div className="text-4xl mb-4">💡</div>
-                  <p>No specific recommendations available</p>
-                  <p className="text-sm">AI insights will appear here once correlation analysis is complete</p>
+              )}
+              
+              {/* Specific Actions Based on Data */}
+              {allCorrelations.length > 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="font-medium text-green-900 mb-3">🎯 Specific Actions for Your Dataset</h4>
+                  <div className="space-y-3">
+                    {processedCorrelations.strong.length > 0 && (
+                      <div className="bg-white rounded-lg p-3 border border-green-100">
+                        <h5 className="font-medium text-green-800 mb-2">🔴 Strong Correlations Detected</h5>
+                        <ul className="text-sm text-green-700 space-y-1">
+                          <li>• Review the {processedCorrelations.strong.length} strong correlation(s) for feature redundancy</li>
+                          <li>• Consider using VIF (Variance Inflation Factor) analysis</li>
+                          <li>• Evaluate if both variables are needed for your analysis</li>
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {processedCorrelations.moderate.length > 0 && (
+                      <div className="bg-white rounded-lg p-3 border border-green-100">
+                        <h5 className="font-medium text-green-800 mb-2">🟡 Moderate Correlations Found</h5>
+                        <ul className="text-sm text-green-700 space-y-1">
+                          <li>• Investigate the {processedCorrelations.moderate.length} moderate correlation(s) for business insights</li>
+                          <li>• These relationships might be meaningful for your domain</li>
+                          <li>• Consider feature engineering based on these relationships</li>
+                        </ul>
+                      </div>
+                    )}
+                    
+                    <div className="bg-white rounded-lg p-3 border border-green-100">
+                      <h5 className="font-medium text-green-800 mb-2">📊 Next Steps</h5>
+                      <ul className="text-sm text-green-700 space-y-1">
+                        <li>• Export correlation matrix for detailed analysis</li>
+                        <li>• Create scatter plots for top correlations</li>
+                        <li>• Document findings for stakeholder review</li>
+                        <li>• Consider correlation with target variable if doing predictive modeling</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* General Best Practices */}
+              {/* Enhanced Best Practices */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-3">📚 General Best Practices</h4>
-                <ul className="space-y-2 text-sm text-gray-700">
-                  <li className="flex items-start">
-                    <span className="text-gray-500 mr-2">•</span>
-                    <span>Correlations above 0.7 or below -0.7 are considered strong</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-gray-500 mr-2">•</span>
-                    <span>High correlations between features may indicate multicollinearity</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-gray-500 mr-2">•</span>
-                    <span>Consider removing highly correlated features to improve model performance</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-gray-500 mr-2">•</span>
-                    <span>Correlation does not imply causation - investigate relationships further</span>
-                  </li>
-                </ul>
+                <h4 className="font-medium text-gray-900 mb-3">📚 Correlation Analysis Best Practices</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <h5 className="font-medium text-gray-800">🎯 Interpretation Guidelines</h5>
+                    <ul className="space-y-2 text-sm text-gray-700">
+                      <li className="flex items-start">
+                        <span className="text-red-500 mr-2 font-bold">•</span>
+                        <span><strong>|r| ≥ 0.7:</strong> Strong correlation - investigate for multicollinearity</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-yellow-500 mr-2 font-bold">•</span>
+                        <span><strong>0.3 &le; |r| &lt; 0.7:</strong> Moderate correlation - potentially meaningful</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-green-500 mr-2 font-bold">•</span>
+                        <span><strong>|r| &lt; 0.3:</strong> Weak correlation - limited linear relationship</span>
+                      </li>
+                    </ul>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <h5 className="font-medium text-gray-800">⚠️ Important Considerations</h5>
+                    <ul className="space-y-2 text-sm text-gray-700">
+                      <li className="flex items-start">
+                        <span className="text-gray-500 mr-2">•</span>
+                        <span>Correlation &ne; Causation - always investigate further</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-gray-500 mr-2">•</span>
+                        <span>Non-linear relationships may not show in Pearson correlation</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-gray-500 mr-2">•</span>
+                        <span>Outliers can significantly affect correlation values</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-gray-500 mr-2">•</span>
+                        <span>Consider domain knowledge when interpreting results</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
               </div>
+              
+              {/* No Data State */}
+              {allCorrelations.length === 0 && (
+                <div className="text-center py-12 text-gray-500">
+                  <div className="text-4xl mb-4">💡</div>
+                  <p className="text-lg font-medium mb-2">No Correlation Data Available</p>
+                  <p className="text-sm">Ensure your dataset has at least 2 numeric columns to generate correlation insights</p>
+                </div>
+              )}
             </div>
           )}
         </div>
