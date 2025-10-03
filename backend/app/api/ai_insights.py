@@ -16,6 +16,7 @@ from enum import Enum
 
 # Import required modules
 from app.core.database import DatabaseManager, local_storage
+from app.core.config import settings
 from app.ml.ai_agent import ai_agent, AnalysisType
 from app.ml.eda_processor import EDAProcessor
 from app.ml.missing_values_processor import MissingValuesProcessor
@@ -575,6 +576,12 @@ async def treat_missing_values(
         
         # Save treated dataset with consistent naming
         treated_dataset_id = f"{dataset_id}_treated"
+        
+        # Save treated dataset as CSV file in upload directory
+        treated_csv_path = settings.UPLOAD_DIR / f"{treated_dataset_id}.csv"
+        df_treated.to_csv(treated_csv_path, index=False)
+        logger.info(f"Saved treated dataset CSV to: {treated_csv_path}")
+        
         treated_data = {
             "id": treated_dataset_id,
             "name": f"{dataset.get('name', 'Dataset')} - Cleaned",
@@ -587,11 +594,12 @@ async def treat_missing_values(
                 "created_at": datetime.utcnow().isoformat(),
                 "is_treated": True,
                 "shape": df_treated.shape,
-                "dtypes": df_treated.dtypes.to_dict()
+                "dtypes": df_treated.dtypes.to_dict(),
+                "csv_file_path": str(treated_csv_path)
             }
         }
         
-        # Store the treated dataset
+        # Store the treated dataset metadata
         local_storage.save_json(f"dataset_{treated_dataset_id}", treated_data)
         
         # Also save treatment history
@@ -701,29 +709,48 @@ async def get_treatment_history(dataset_id: str):
 async def download_dataset_csv(dataset_id: str):
     """Download dataset as CSV (original or treated)"""
     try:
-        from fastapi.responses import StreamingResponse
-        import io
+        from fastapi.responses import FileResponse
+        from pathlib import Path
         
-        dataset = await get_dataset(dataset_id)
-        df = pd.DataFrame(dataset['data'])
+        # First try to find the CSV file in upload directory
+        dataset_files = list(settings.UPLOAD_DIR.glob(f"{dataset_id}.*"))
         
-        # Determine filename based on whether it's treated or original
-        is_treated = dataset.get('metadata', {}).get('is_treated', False)
-        filename_suffix = "_cleaned" if is_treated else "_original"
-        
-        # Create CSV in memory
-        csv_buffer = io.StringIO()
-        df.to_csv(csv_buffer, index=False)
-        csv_buffer.seek(0)
-        
-        # Create streaming response
-        response = StreamingResponse(
-            io.BytesIO(csv_buffer.getvalue().encode('utf-8')),
-            media_type="text/csv",
-            headers={"Content-Disposition": f"attachment; filename={dataset_id}{filename_suffix}.csv"}
-        )
-        
-        return response
+        if dataset_files:
+            # Found CSV file, serve it directly
+            csv_file = dataset_files[0]
+            is_treated = "_treated" in dataset_id
+            filename_suffix = "_cleaned" if is_treated else "_original"
+            
+            return FileResponse(
+                path=csv_file,
+                media_type="text/csv",
+                filename=f"{dataset_id}{filename_suffix}.csv"
+            )
+        else:
+            # Fallback to generating CSV from stored data
+            from fastapi.responses import StreamingResponse
+            import io
+            
+            dataset = await get_dataset(dataset_id)
+            df = pd.DataFrame(dataset['data'])
+            
+            # Determine filename based on whether it's treated or original
+            is_treated = dataset.get('metadata', {}).get('is_treated', False)
+            filename_suffix = "_cleaned" if is_treated else "_original"
+            
+            # Create CSV in memory
+            csv_buffer = io.StringIO()
+            df.to_csv(csv_buffer, index=False)
+            csv_buffer.seek(0)
+            
+            # Create streaming response
+            response = StreamingResponse(
+                io.BytesIO(csv_buffer.getvalue().encode('utf-8')),
+                media_type="text/csv",
+                headers={"Content-Disposition": f"attachment; filename={dataset_id}{filename_suffix}.csv"}
+            )
+            
+            return response
         
     except Exception as e:
         logger.error(f"Error downloading dataset {dataset_id}: {str(e)}")
