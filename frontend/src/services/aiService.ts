@@ -106,12 +106,190 @@ class AIService {
   }
 
   /**
+   * Get comprehensive missing values analysis
+   */
+  async getMissingValuesAnalysis(datasetId: string): Promise<AIInsightResponse> {
+    const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/missing-values/analysis`);
+    if (!response.ok) {
+      throw new Error(`Failed to get missing values analysis: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Treat missing values using specified method
+   */
+  async treatMissingValues(
+    datasetId: string,
+    method: string,
+    options: {
+      column?: string;
+      n_neighbors?: number;
+      constant_value?: any;
+      threshold?: number;
+    } = {}
+  ): Promise<any> {
+    const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/missing-values/treat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        method,
+        ...options,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to treat missing values: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Preview missing values treatment
+   */
+  async previewMissingValuesTreatment(
+    datasetId: string,
+    method: string,
+    options: {
+      column?: string;
+      n_neighbors?: number;
+      constant_value?: any;
+      threshold?: number;
+    } = {}
+  ): Promise<any> {
+    const params = new URLSearchParams({
+      method,
+      ...Object.fromEntries(
+        Object.entries(options).map(([key, value]) => [key, String(value)])
+      ),
+    });
+
+    const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/missing-values/preview?${params}`);
+    if (!response.ok) {
+      throw new Error(`Failed to preview missing values treatment: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Download treated dataset as CSV
+   */
+  async downloadTreatedDataset(datasetId: string): Promise<Blob> {
+    const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/download/csv`);
+    if (!response.ok) {
+      throw new Error(`Failed to download dataset: ${response.statusText}`);
+    }
+    return response.blob();
+  }
+
+  /**
    * Get AI-powered outlier insights
    */
   async getOutlierInsights(datasetId: string): Promise<AIInsightResponse> {
     const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/outliers`);
     if (!response.ok) {
       throw new Error(`Failed to get outlier insights: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Get comprehensive outlier analysis
+   */
+  async getOutlierAnalysis(datasetId: string): Promise<AIInsightResponse> {
+    const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/outliers/analysis`);
+    if (!response.ok) {
+      throw new Error(`Failed to get outlier analysis: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Detect outliers using specified method
+   */
+  async detectOutliers(
+    datasetId: string,
+    options: {
+      method?: string;
+      column?: string;
+      threshold?: number;
+      multiplier?: number;
+      contamination?: number;
+      lower_percentile?: number;
+      upper_percentile?: number;
+    } = {}
+  ): Promise<any> {
+    const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/outliers/detect`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(options),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to detect outliers: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Treat outliers using specified method
+   */
+  async treatOutliers(
+    datasetId: string,
+    method: string,
+    options: {
+      column?: string;
+      detection_method?: string;
+      z_threshold?: number;
+      lower_percentile?: number;
+      upper_percentile?: number;
+    } = {}
+  ): Promise<any> {
+    const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/outliers/treat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        method,
+        ...options,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to treat outliers: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Preview outlier treatment
+   */
+  async previewOutlierTreatment(
+    datasetId: string,
+    method: string,
+    options: {
+      column?: string;
+      detection_method?: string;
+      z_threshold?: number;
+      lower_percentile?: number;
+      upper_percentile?: number;
+    } = {}
+  ): Promise<any> {
+    const params = new URLSearchParams({
+      method,
+      ...Object.fromEntries(
+        Object.entries(options).map(([key, value]) => [key, String(value)])
+      ),
+    });
+
+    const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/outliers/preview?${params}`);
+    if (!response.ok) {
+      throw new Error(`Failed to preview outlier treatment: ${response.statusText}`);
     }
     return response.json();
   }

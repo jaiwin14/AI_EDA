@@ -9,25 +9,24 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 import logging
-import logging
 import os
 from typing import Dict, Any, Optional
 from datetime import datetime
 from enum import Enum
 
-# Assuming these imports are correctly set up in your project
-from app.core.config import settings
-from app.core.database import db_manager, local_storage
-from app.api.upload import load_dataset
-from ..ml.ai_agent import ai_agent, AnalysisType
-# from fastapi.responses import JSONResponse # Already imported
-from ..ml.eda_processor import EDAProcessor
-
+# Import required modules
+from app.core.database import DatabaseManager, local_storage
+from app.ml.ai_agent import ai_agent, AnalysisType
+from app.ml.eda_processor import EDAProcessor
+from app.ml.missing_values_processor import MissingValuesProcessor
+from app.ml.outlier_processor import OutlierProcessor
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/ai-insights", tags=["AI Insights"])
 
-# Initialize EDA Processor
+# Initialize processors
 eda_processor = EDAProcessor()
+missing_values_processor = MissingValuesProcessor()
+outlier_processor = OutlierProcessor()
 
 async def get_dataset(dataset_id: str) -> dict:
     """Load dataset by ID from database or local storage"""
@@ -196,8 +195,8 @@ async def _perform_analysis(
                 "correlation_matrix": corr_matrix.to_dict()
             }
         elif analysis_type == AnalysisType.MISSING_VALUES_ANALYSIS:
-            missing_data = {k: int(v) for k, v in df.isnull().sum().to_dict().items()}
-            result = await ai_agent.analyze_missing_values(missing_data)
+            # Use the advanced missing values processor
+            result = await missing_values_processor.analyze_missing_patterns(df)
         elif analysis_type == AnalysisType.OUTLIER_ANALYSIS:
             outliers = await eda_processor.detect_outliers(df)
             result = await ai_agent.analyze_outliers(df, outliers)
@@ -287,13 +286,51 @@ async def get_correlation_insights(dataset_id: str):
 
 @router.get("/{dataset_id}/missing-values", response_model=Dict[str, Any])
 async def get_missing_values_insights(dataset_id: str):
-    """Get AI-powered missing values insights"""
-    return await _perform_analysis(dataset_id, AnalysisType.MISSING_VALUES_ANALYSIS)
+    """Get comprehensive missing values analysis"""
+    try:
+        dataset = await get_dataset(dataset_id)
+        df = pd.DataFrame(dataset['data'])
+        
+        analysis = await missing_values_processor.analyze_missing_patterns(df)
+        
+        return {
+            "success": True,
+            "analysis_type": "missing_values_analysis",
+            "dataset_id": dataset_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": analysis
+        }
+        
+    except Exception as e:
+        logger.error(f"Error analyzing missing values for dataset {dataset_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error analyzing missing values: {str(e)}"
+        )
 
 @router.get("/{dataset_id}/outliers", response_model=Dict[str, Any])
 async def get_outlier_insights(dataset_id: str):
-    """Get AI-powered outlier insights"""
-    return await _perform_analysis(dataset_id, AnalysisType.OUTLIER_ANALYSIS)
+    """Get comprehensive outlier analysis"""
+    try:
+        dataset = await get_dataset(dataset_id)
+        df = pd.DataFrame(dataset['data'])
+        
+        analysis = await outlier_processor.analyze_outlier_patterns(df)
+        
+        return {
+            "success": True,
+            "analysis_type": "outlier_analysis",
+            "dataset_id": dataset_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": analysis
+        }
+        
+    except Exception as e:
+        logger.error(f"Error analyzing outliers for dataset {dataset_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error analyzing outliers: {str(e)}"
+        )
 
 @router.get("/{dataset_id}/distributions", response_model=Dict[str, Any])
 async def get_distribution_insights(dataset_id: str):
@@ -434,3 +471,308 @@ async def generate_custom_insights(
     except Exception as e:
         logger.error(f"Error generating custom insights: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate custom insights: {str(e)}")
+
+# Missing Values Treatment Endpoints
+
+@router.get("/{dataset_id}/missing-values/analysis", response_model=Dict[str, Any])
+async def get_missing_values_analysis(dataset_id: str):
+    """Get comprehensive missing values analysis"""
+    try:
+        dataset = await get_dataset(dataset_id)
+        df = pd.DataFrame(dataset['data'])
+        
+        analysis = await missing_values_processor.analyze_missing_patterns(df)
+        
+        return {
+            "success": True,
+            "analysis_type": "missing_values_analysis",
+            "dataset_id": dataset_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": analysis
+        }
+        
+    except Exception as e:
+        logger.error(f"Error analyzing missing values for dataset {dataset_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error analyzing missing values: {str(e)}"
+        )
+
+@router.post("/{dataset_id}/missing-values/treat")
+async def treat_missing_values(
+    dataset_id: str,
+    method: str,
+    column: Optional[str] = None,
+    n_neighbors: Optional[int] = 5,
+    constant_value: Optional[Any] = 0,
+    threshold: Optional[float] = 0.5
+):
+    """Apply missing value treatment method"""
+    try:
+        dataset = await get_dataset(dataset_id)
+        df = pd.DataFrame(dataset['data'])
+        
+        # Apply treatment
+        df_treated, treatment_info = await missing_values_processor.treat_missing_values(
+            df, method, column, 
+            n_neighbors=n_neighbors,
+            constant_value=constant_value,
+            threshold=threshold
+        )
+        
+        # Save treated dataset
+        treated_dataset_id = f"{dataset_id}_treated_{method}"
+        treated_data = {
+            "id": treated_dataset_id,
+            "name": f"{dataset.get('name', 'Dataset')} - {method} treated",
+            "data": df_treated.to_dict('records'),
+            "metadata": {
+                "original_dataset_id": dataset_id,
+                "treatment_method": method,
+                "treatment_info": treatment_info,
+                "created_at": datetime.utcnow().isoformat()
+            }
+        }
+        
+        # Store the treated dataset
+        local_storage.save_json(f"dataset_{treated_dataset_id}", treated_data)
+        
+        return {
+            "success": True,
+            "dataset_id": dataset_id,
+            "treated_dataset_id": treated_dataset_id,
+            "treatment_info": treatment_info,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error treating missing values for dataset {dataset_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error treating missing values: {str(e)}"
+        )
+
+@router.get("/{dataset_id}/missing-values/preview")
+async def preview_missing_values_treatment(
+    dataset_id: str,
+    method: str,
+    column: Optional[str] = None,
+    n_neighbors: Optional[int] = 5,
+    constant_value: Optional[Any] = 0,
+    threshold: Optional[float] = 0.5
+):
+    """Preview what missing value treatment would do"""
+    try:
+        dataset = await get_dataset(dataset_id)
+        df = pd.DataFrame(dataset['data'])
+        
+        preview = await missing_values_processor.get_treatment_preview(
+            df, method, column,
+            n_neighbors=n_neighbors,
+            constant_value=constant_value,
+            threshold=threshold
+        )
+        
+        return {
+            "success": True,
+            "dataset_id": dataset_id,
+            "preview": preview,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error previewing missing values treatment for dataset {dataset_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error previewing treatment: {str(e)}"
+        )
+
+@router.get("/{dataset_id}/download/csv")
+async def download_treated_dataset(dataset_id: str):
+    """Download treated dataset as CSV"""
+    try:
+        from fastapi.responses import StreamingResponse
+        import io
+        
+        dataset = await get_dataset(dataset_id)
+        df = pd.DataFrame(dataset['data'])
+        
+        # Create CSV in memory
+        csv_buffer = io.StringIO()
+        df.to_csv(csv_buffer, index=False)
+        csv_buffer.seek(0)
+        
+        # Create streaming response
+        response = StreamingResponse(
+            io.BytesIO(csv_buffer.getvalue().encode('utf-8')),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={dataset_id}_treated.csv"}
+        )
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error downloading dataset {dataset_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error downloading dataset: {str(e)}"
+        )
+
+# Outlier Detection and Treatment Endpoints
+
+@router.get("/{dataset_id}/outliers/analysis", response_model=Dict[str, Any])
+async def get_outlier_analysis(dataset_id: str):
+    """Get comprehensive outlier analysis"""
+    try:
+        dataset = await get_dataset(dataset_id)
+        df = pd.DataFrame(dataset['data'])
+        
+        analysis = await outlier_processor.analyze_outlier_patterns(df)
+        
+        return {
+            "success": True,
+            "analysis_type": "outlier_analysis",
+            "dataset_id": dataset_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": analysis
+        }
+        
+    except Exception as e:
+        logger.error(f"Error analyzing outliers for dataset {dataset_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error analyzing outliers: {str(e)}"
+        )
+
+@router.post("/{dataset_id}/outliers/detect")
+async def detect_outliers(
+    dataset_id: str,
+    method: str = "iqr",
+    column: Optional[str] = None,
+    threshold: Optional[float] = 3.0,
+    multiplier: Optional[float] = 1.5,
+    contamination: Optional[float] = 0.1,
+    lower_percentile: Optional[float] = 1,
+    upper_percentile: Optional[float] = 99
+):
+    """Detect outliers using specified method"""
+    try:
+        dataset = await get_dataset(dataset_id)
+        df = pd.DataFrame(dataset['data'])
+        
+        # Apply detection
+        detection_result = await outlier_processor.detect_outliers(
+            df, method, column,
+            threshold=threshold,
+            multiplier=multiplier,
+            contamination=contamination,
+            lower=lower_percentile,
+            upper=upper_percentile
+        )
+        
+        return {
+            "success": True,
+            "dataset_id": dataset_id,
+            "detection_result": detection_result,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error detecting outliers for dataset {dataset_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error detecting outliers: {str(e)}"
+        )
+
+@router.post("/{dataset_id}/outliers/treat")
+async def treat_outliers(
+    dataset_id: str,
+    method: str,
+    column: Optional[str] = None,
+    detection_method: Optional[str] = "iqr",
+    z_threshold: Optional[float] = 3.0,
+    lower_percentile: Optional[float] = 5,
+    upper_percentile: Optional[float] = 95
+):
+    """Apply outlier treatment method"""
+    try:
+        dataset = await get_dataset(dataset_id)
+        df = pd.DataFrame(dataset['data'])
+        
+        # Apply treatment
+        df_treated, treatment_info = await outlier_processor.treat_outliers(
+            df, method, column,
+            detection_method=detection_method,
+            z_threshold=z_threshold,
+            lower_percentile=lower_percentile,
+            upper_percentile=upper_percentile
+        )
+        
+        # Save treated dataset
+        treated_dataset_id = f"{dataset_id}_outliers_treated_{method}"
+        treated_data = {
+            "id": treated_dataset_id,
+            "name": f"{dataset.get('name', 'Dataset')} - {method} outlier treatment",
+            "data": df_treated.to_dict('records'),
+            "metadata": {
+                "original_dataset_id": dataset_id,
+                "treatment_method": method,
+                "treatment_info": treatment_info,
+                "created_at": datetime.utcnow().isoformat()
+            }
+        }
+        
+        # Store the treated dataset
+        local_storage.save_json(f"dataset_{treated_dataset_id}", treated_data)
+        
+        return {
+            "success": True,
+            "dataset_id": dataset_id,
+            "treated_dataset_id": treated_dataset_id,
+            "treatment_info": treatment_info,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error treating outliers for dataset {dataset_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error treating outliers: {str(e)}"
+        )
+
+@router.get("/{dataset_id}/outliers/preview")
+async def preview_outlier_treatment(
+    dataset_id: str,
+    method: str,
+    column: Optional[str] = None,
+    detection_method: Optional[str] = "iqr",
+    z_threshold: Optional[float] = 3.0,
+    lower_percentile: Optional[float] = 5,
+    upper_percentile: Optional[float] = 95
+):
+    """Preview what outlier treatment would do"""
+    try:
+        dataset = await get_dataset(dataset_id)
+        df = pd.DataFrame(dataset['data'])
+        
+        preview = await outlier_processor.get_treatment_preview(
+            df, method, column,
+            detection_method=detection_method,
+            z_threshold=z_threshold,
+            lower_percentile=lower_percentile,
+            upper_percentile=upper_percentile
+        )
+        
+        return {
+            "success": True,
+            "dataset_id": dataset_id,
+            "preview": preview,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error previewing outlier treatment for dataset {dataset_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error previewing treatment: {str(e)}"
+        )

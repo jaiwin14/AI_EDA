@@ -182,7 +182,14 @@ async def get_eda_results(
             logger.warning(f"No EDA results found for dataset {dataset_id}")
             return {
                 "dataset_id": dataset_id,
-                "analyses": {},
+                "analyses": {
+                    "basic_statistics": None,
+                    "missing_values": None,
+                    "correlations": None,
+                    "distributions": None,
+                    "outliers": None
+                },
+                "visualizations": [],
                 "summary": {
                     "total_analyses": 0,
                     "completed_at": None,
@@ -190,9 +197,36 @@ async def get_eda_results(
                 }
             }
         
+        # Structure the results properly for frontend consumption
+        analyses = {}
+        visualizations = []
+        
+        for result in results:
+            analysis_type_key = result.get("type", "unknown")
+            analysis_data = result.get("results", {})
+            
+            # Map analysis types to expected structure
+            if analysis_type_key in ["basic_statistics", "missing_values", "correlations", "distributions", "outliers"]:
+                analyses[analysis_type_key] = analysis_data
+            elif analysis_type_key == "visualizations":
+                visualizations.extend(analysis_data if isinstance(analysis_data, list) else [analysis_data])
+        
+        # Get the latest timestamp
+        latest_timestamp = None
+        if results:
+            timestamps = [result.get("created_at") for result in results if result.get("created_at")]
+            if timestamps:
+                latest_timestamp = max(timestamps)
+        
         return {
             "dataset_id": dataset_id,
-            "results": results
+            "analyses": analyses,
+            "visualizations": visualizations,
+            "summary": {
+                "total_analyses": len(results),
+                "completed_at": latest_timestamp,
+                "status": "completed" if results else "no_results"
+            }
         }
         
     except Exception as e:

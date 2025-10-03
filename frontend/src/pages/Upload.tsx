@@ -14,12 +14,13 @@ interface Dataset {
   upload_time: string;
   file_size: number;
   status: string;
+  rows?: number;
+  columns?: number;
 }
 
 const Upload: React.FC = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const navigate = useNavigate();
-
   const { data: datasets, refetch } = useQuery<Dataset[]>({
     queryKey: ['datasets'],
     queryFn: async () => {
@@ -95,7 +96,6 @@ const Upload: React.FC = () => {
           <p>Drag and drop your file below to begin the analysis.</p>
         </header>
 
-        {/* The variables from useDropzone are used here */}
         <div
           {...getRootProps()}
           className={`upload-area ${isDragActive ? 'is-active' : ''} ${
@@ -154,6 +154,7 @@ const Upload: React.FC = () => {
                   <tr>
                     <th>Filename</th>
                     <th>Size</th>
+                    <th>Rows × Cols</th>
                     <th>Upload Time</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -162,10 +163,18 @@ const Upload: React.FC = () => {
                 <tbody>
                   {datasets.map((dataset) => (
                     <tr key={dataset.dataset_id}>
-                      <td className="font-medium">{dataset.filename}</td>
-                      <td>{formatFileSize(dataset.file_size)}</td>
-                      <td>{formatDate(dataset.upload_time)}</td>
-                      <td>
+                      <td className="cell-filename" title={dataset.filename}>
+                        {dataset.filename}
+                      </td>
+                      <td className="cell-size">{formatFileSize(dataset.file_size)}</td>
+                      <td className="cell-dimensions">
+                        {dataset.rows && dataset.columns 
+                          ? `${dataset.rows.toLocaleString()} × ${dataset.columns}` 
+                          : 'N/A'
+                        }
+                      </td>
+                      <td className="cell-time">{formatDate(dataset.upload_time)}</td>
+                      <td className="cell-status">
                         <span
                           className={`status-badge ${
                             dataset.status === 'completed' ? 'status-success'
@@ -176,7 +185,7 @@ const Upload: React.FC = () => {
                           {dataset.status}
                         </span>
                       </td>
-                      <td>
+                      <td className="cell-actions">
                         <div className="table-actions">
                           <button
                             onClick={() => navigate(`/eda/${dataset.dataset_id}`)}

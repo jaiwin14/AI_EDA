@@ -173,6 +173,29 @@ class DatabaseManager:
             logger.error(f"Error getting dataset: {str(e)}")
             return None
     
+    async def list_datasets(self) -> List[Dict[str, Any]]:
+        """List all datasets with metadata"""
+        if not self.connected:
+            return []
+        
+        try:
+            result = self.client.table('datasets').select('*').order('upload_timestamp', desc=True).execute()
+            datasets = []
+            for dataset in result.data or []:
+                datasets.append({
+                    'dataset_id': dataset['id'],
+                    'filename': dataset['original_filename'],
+                    'file_size': dataset['file_size'],
+                    'upload_time': dataset['upload_timestamp'],
+                    'status': dataset.get('status', 'completed'),
+                    'rows': dataset.get('rows_count', 0),
+                    'columns': dataset.get('cols', 0)
+                })
+            return datasets
+        except Exception as e:
+            logger.error(f"Error listing datasets: {str(e)}")
+            return []
+    
     # EDA results operations
     async def save_eda_results(self, dataset_id: str, analysis_type: str, 
                              results: Dict[str, Any]) -> Optional[str]:

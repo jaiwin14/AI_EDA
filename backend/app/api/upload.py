@@ -119,12 +119,20 @@ async def upload_dataset(
         return {
             "dataset_id": dataset_id,
             "filename": file.filename,
-            "size": file_size,
+            "file_size": file_size,
+            "size": file_size,  # Keep for backward compatibility
             "rows": df.shape[0],
             "columns": df.shape[1],
+            "upload_time": datetime.utcnow().isoformat(),
             "status": "uploaded",
             "message": "Dataset uploaded successfully. EDA processing started in background.",
-            "validation": validation_results
+            "validation": validation_results,
+            "metadata": {
+                "shape": [df.shape[0], df.shape[1]],
+                "columns": list(df.columns),
+                "dtypes": df.dtypes.astype(str).to_dict(),
+                "missing_values": df.isnull().sum().to_dict()
+            }
         }
         
     except Exception as e:
@@ -142,18 +150,17 @@ async def upload_dataset(
 async def list_datasets() -> List[Dict[str, Any]]:
     """List all uploaded datasets"""
     
-    datasets = []
-    
     # Try to get from database first
     try:
-        # This would require implementing a list method in db_manager
-        # For now, scan local files
-        pass
+        datasets = await db_manager.list_datasets()
+        if datasets:
+            return datasets
     except Exception as e:
         logger.warning(f"Database query failed: {str(e)}")
     
     # Fallback to scanning upload directory
     try:
+        datasets = []
         for filepath in settings.UPLOAD_DIR.glob("*"):
             if filepath.is_file() and filepath.suffix.lower() in settings.ALLOWED_FILE_TYPES:
                 dataset_id = filepath.stem
@@ -161,15 +168,24 @@ async def list_datasets() -> List[Dict[str, Any]]:
                 # Try to load metadata
                 metadata = local_storage.load_json(f"dataset_{dataset_id}")
                 if metadata:
+                    # Get file stats
+                    file_stats = filepath.stat()
+                    upload_time = metadata.get("metadata", {}).get("upload_timestamp")
+                    if not upload_time:
+                        upload_time = datetime.fromtimestamp(file_stats.st_ctime).isoformat()
+                    
                     datasets.append({
                         "dataset_id": dataset_id,
                         "filename": metadata.get("original_filename", filepath.name),
-                        "upload_date": metadata.get("metadata", {}).get("upload_timestamp"),
+                        "file_size": file_stats.st_size,
+                        "upload_time": upload_time,
+                        "status": "completed",
                         "rows": metadata.get("metadata", {}).get("shape", [0, 0])[0],
-                        "columns": metadata.get("metadata", {}).get("shape", [0, 0])[1],
-                        "size": filepath.stat().st_size
+                        "columns": metadata.get("metadata", {}).get("shape", [0, 0])[1]
                     })
         
+        # Sort by upload time (newest first)
+        datasets.sort(key=lambda x: x.get("upload_time", ""), reverse=True)
         return datasets
         
     except Exception as e:
