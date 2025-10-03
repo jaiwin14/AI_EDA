@@ -1,0 +1,147 @@
+{
+  "dataset_id": "bb056e0a-9397-4fd8-a22d-17f3c7afb9d3",
+  "filename": "bb056e0a-9397-4fd8-a22d-17f3c7afb9d3.csv",
+  "original_filename": "f1_dnf.csv",
+  "metadata": {
+    "shape": [
+      10000,
+      31
+    ],
+    "columns": [
+      "resultId",
+      "raceId",
+      "year",
+      "round",
+      "grid",
+      "positionOrder",
+      "points",
+      "laps",
+      "milliseconds",
+      "fastestLap",
+      "rank",
+      "fastestLapTime",
+      "fastestLapSpeed",
+      "driverRef",
+      "surname",
+      "forename",
+      "dob",
+      "nationality_x",
+      "constructorRef",
+      "name",
+      "nationality_y",
+      "circuitRef",
+      "circuitId",
+      "name_y",
+      "location",
+      "country",
+      "lat",
+      "lng",
+      "alt",
+      "date",
+      "target_finish"
+    ],
+    "dtypes": {
+      "resultId": "int64",
+      "raceId": "int64",
+      "year": "int64",
+      "round": "int64",
+      "grid": "int64",
+      "positionOrder": "int64",
+      "points": "float64",
+      "laps": "float64",
+      "milliseconds": "object",
+      "fastestLap": "object",
+      "rank": "object",
+      "fastestLapTime": "object",
+      "fastestLapSpeed": "object",
+      "driverRef": "object",
+      "surname": "object",
+      "forename": "object",
+      "dob": "object",
+      "nationality_x": "object",
+      "constructorRef": "object",
+      "name": "object",
+      "nationality_y": "object",
+      "circuitRef": "object",
+      "circuitId": "int64",
+      "name_y": "object",
+      "location": "object",
+      "country": "object",
+      "lat": "float64",
+      "lng": "float64",
+      "alt": "int64",
+      "date": "object",
+      "target_finish": "int64"
+    },
+    "missing_values": {
+      "resultId": 0,
+      "raceId": 0,
+      "year": 0,
+      "round": 0,
+      "grid": 0,
+      "positionOrder": 0,
+      "points": 971,
+      "laps": 978,
+      "milliseconds": 1018,
+      "fastestLap": 0,
+      "rank": 0,
+      "fastestLapTime": 0,
+      "fastestLapSpeed": 953,
+      "driverRef": 0,
+      "surname": 0,
+      "forename": 0,
+      "dob": 0,
+      "nationality_x": 0,
+      "constructorRef": 0,
+      "name": 0,
+      "nationality_y": 0,
+      "circuitRef": 0,
+      "circuitId": 0,
+      "name_y": 0,
+      "location": 0,
+      "country": 0,
+      "lat": 0,
+      "lng": 0,
+      "alt": 0,
+      "date": 0,
+      "target_finish": 0
+    },
+    "memory_usage": 12649401,
+    "validation_results": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "Highly skewed numeric columns: ['points']",
+        "Columns with significant outliers (>10%): ['points', 'lat', 'lng']"
+      ],
+      "recommendations": [
+        "Consider log transformation or other normalization for skewed features",
+        "Consider outlier treatment strategies"
+      ],
+      "validation_summary": {
+        "structure": {
+          "is_valid": true,
+          "errors": [],
+          "warnings": [],
+          "recommendations": []
+        },
+        "data_quality": {
+          "is_valid": true,
+          "warnings": [],
+          "recommendations": []
+        },
+        "ml_readiness": {
+          "warnings": [
+            "Highly skewed numeric columns: ['points']",
+            "Columns with significant outliers (>10%): ['points', 'lat', 'lng']"
+          ],
+          "recommendations": [
+            "Consider log transformation or other normalization for skewed features",
+            "Consider outlier treatment strategies"
+          ]
+        }
+      }
+    },
+    "upload_timestamp": "2025-10-03T16:46:58.493245"
+  }
+}

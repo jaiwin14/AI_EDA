@@ -174,14 +174,38 @@ class AIService {
   }
 
   /**
-   * Download treated dataset as CSV
+   * Download original dataset as CSV
    */
-  async downloadTreatedDataset(datasetId: string): Promise<Blob> {
+  async downloadOriginalDataset(datasetId: string): Promise<Blob> {
     const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/download/csv`);
     if (!response.ok) {
-      throw new Error(`Failed to download dataset: ${response.statusText}`);
+      throw new Error(`Failed to download original dataset: ${response.statusText}`);
     }
     return response.blob();
+  }
+
+  /**
+   * Download treated/cleaned dataset as CSV
+   */
+  async downloadTreatedDataset(datasetId: string): Promise<Blob> {
+    // Look for the treated dataset ID
+    const treatedDatasetId = `${datasetId}_treated`;
+    const response = await fetch(`${this.baseURL}/ai-insights/${treatedDatasetId}/download/csv`);
+    if (!response.ok) {
+      throw new Error(`Failed to download treated dataset: ${response.statusText}`);
+    }
+    return response.blob();
+  }
+
+  /**
+   * Get treatment history for a dataset
+   */
+  async getTreatmentHistory(datasetId: string): Promise<any> {
+    const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/treatment-history`);
+    if (!response.ok) {
+      throw new Error(`Failed to get treatment history: ${response.statusText}`);
+    }
+    return response.json();
   }
 
   /**

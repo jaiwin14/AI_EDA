@@ -70,14 +70,29 @@ const MissingValuesInsights: React.FC<MissingValuesInsightsProps> = ({ datasetId
     },
   });
 
-  // Download mutation
-  const downloadMutation = useMutation({
+  // Download original dataset mutation
+  const downloadOriginalMutation = useMutation({
+    mutationFn: () => aiService.downloadOriginalDataset(datasetId),
+    onSuccess: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${datasetId}_original.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    },
+  });
+
+  // Download treated dataset mutation
+  const downloadTreatedMutation = useMutation({
     mutationFn: () => aiService.downloadTreatedDataset(datasetId),
     onSuccess: (blob) => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${datasetId}_treated.csv`;
+      a.download = `${datasetId}_cleaned.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -196,12 +211,12 @@ const MissingValuesInsights: React.FC<MissingValuesInsightsProps> = ({ datasetId
             </div>
             <div className="flex space-x-3">
               <button
-                onClick={() => downloadMutation.mutate()}
-                disabled={downloadMutation.isPending}
+                onClick={() => downloadOriginalMutation.mutate()}
+                disabled={downloadOriginalMutation.isPending}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
               >
                 <span>📥</span>
-                <span>{downloadMutation.isPending ? 'Downloading...' : 'Download CSV'}</span>
+                <span>{downloadOriginalMutation.isPending ? 'Downloading...' : 'Download Original CSV'}</span>
               </button>
             </div>
           </div>
@@ -236,12 +251,12 @@ const MissingValuesInsights: React.FC<MissingValuesInsightsProps> = ({ datasetId
           </div>
           <div className="flex space-x-3">
             <button
-              onClick={() => downloadMutation.mutate()}
-              disabled={downloadMutation.isPending}
+              onClick={() => downloadOriginalMutation.mutate()}
+              disabled={downloadOriginalMutation.isPending}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
               <span>📥</span>
-              <span>{downloadMutation.isPending ? 'Downloading...' : 'Download Original CSV'}</span>
+              <span>{downloadOriginalMutation.isPending ? 'Downloading...' : 'Download Original CSV'}</span>
             </button>
           </div>
         </div>
@@ -282,24 +297,73 @@ const MissingValuesInsights: React.FC<MissingValuesInsightsProps> = ({ datasetId
                     {analysis.missing_summary.total_missing_values}
                   </div>
                   <div className="text-sm text-blue-800">Total Missing Values</div>
+                  <div className="text-xs text-blue-600 mt-1">
+                    Out of {analysis.total_rows * analysis.total_columns} total cells
+                  </div>
                 </div>
                 <div className="bg-red-50 rounded-lg p-4">
                   <div className="text-2xl font-bold text-red-600">
                     {analysis.missing_summary.columns_with_missing}
                   </div>
                   <div className="text-sm text-red-800">Columns Affected</div>
+                  <div className="text-xs text-red-600 mt-1">
+                    Out of {analysis.total_columns} total columns
+                  </div>
                 </div>
                 <div className="bg-yellow-50 rounded-lg p-4">
                   <div className="text-2xl font-bold text-yellow-600">
                     {analysis.missing_summary.percentage_missing_overall.toFixed(1)}%
                   </div>
                   <div className="text-sm text-yellow-800">Overall Missing %</div>
+                  <div className="text-xs text-yellow-600 mt-1">
+                    Data completeness: {(100 - analysis.missing_summary.percentage_missing_overall).toFixed(1)}%
+                  </div>
                 </div>
                 <div className="bg-green-50 rounded-lg p-4">
                   <div className="text-2xl font-bold text-green-600">
                     {analysis.pattern_analysis.complete_cases_percentage.toFixed(1)}%
                   </div>
                   <div className="text-sm text-green-800">Complete Cases</div>
+                  <div className="text-xs text-green-600 mt-1">
+                    {Math.round(analysis.pattern_analysis.complete_cases_percentage / 100 * analysis.total_rows)} rows have no missing values
+                  </div>
+                </div>
+              </div>
+
+              {/* Data Quality Assessment */}
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 mb-6 border border-indigo-200">
+                <h4 className="font-medium text-indigo-900 mb-3">📊 Data Quality Assessment</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className={`text-lg font-bold ${
+                      analysis.missing_summary.percentage_missing_overall < 5 ? 'text-green-600' :
+                      analysis.missing_summary.percentage_missing_overall < 20 ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                      {analysis.missing_summary.percentage_missing_overall < 5 ? 'Excellent' :
+                       analysis.missing_summary.percentage_missing_overall < 20 ? 'Good' : 'Poor'}
+                    </div>
+                    <div className="text-sm text-gray-600">Data Quality</div>
+                  </div>
+                  <div className="text-center">
+                    <div className={`text-lg font-bold ${
+                      analysis.pattern_analysis.complete_cases_percentage > 80 ? 'text-green-600' :
+                      analysis.pattern_analysis.complete_cases_percentage > 50 ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                      {analysis.pattern_analysis.complete_cases_percentage > 80 ? 'High' :
+                       analysis.pattern_analysis.complete_cases_percentage > 50 ? 'Medium' : 'Low'}
+                    </div>
+                    <div className="text-sm text-gray-600">Usability</div>
+                  </div>
+                  <div className="text-center">
+                    <div className={`text-lg font-bold ${
+                      analysis.missing_summary.columns_with_missing / analysis.total_columns < 0.3 ? 'text-green-600' :
+                      analysis.missing_summary.columns_with_missing / analysis.total_columns < 0.6 ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                      {analysis.missing_summary.columns_with_missing / analysis.total_columns < 0.3 ? 'Minimal' :
+                       analysis.missing_summary.columns_with_missing / analysis.total_columns < 0.6 ? 'Moderate' : 'Extensive'}
+                    </div>
+                    <div className="text-sm text-gray-600">Missing Spread</div>
+                  </div>
                 </div>
               </div>
 
@@ -588,7 +652,7 @@ const MissingValuesInsights: React.FC<MissingValuesInsightsProps> = ({ datasetId
             <div className="space-y-6">
               {treatmentMutation.data ? (
                 <>
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
                     <h4 className="font-medium text-green-900 mb-3">✅ Treatment Applied Successfully</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
@@ -610,14 +674,79 @@ const MissingValuesInsights: React.FC<MissingValuesInsightsProps> = ({ datasetId
                     </div>
                   </div>
 
-                  <div className="flex justify-center">
+                  {/* Treatment Method Explanation */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <h4 className="font-medium text-blue-900 mb-3">🔬 Treatment Method Explanation</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="font-medium text-blue-800">Method:</span>
+                        <span className="ml-2">
+                          {treatmentMethods.find(m => m.value === treatmentMutation.data.treatment_info.method)?.label || treatmentMutation.data.treatment_info.method}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-blue-800">Description:</span>
+                        <span className="ml-2">
+                          {treatmentMethods.find(m => m.value === treatmentMutation.data.treatment_info.method)?.description || 'Custom treatment method applied'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-blue-800">Why this method was chosen:</span>
+                        <div className="ml-2 mt-1 text-sm">
+                          {(() => {
+                            const method = treatmentMutation.data.treatment_info.method;
+                            const originalMissing = treatmentMutation.data.treatment_info.original_shape[0] * treatmentMutation.data.treatment_info.original_shape[1] - 
+                                                  (treatmentMutation.data.treatment_info.original_shape[0] * treatmentMutation.data.treatment_info.original_shape[1] - 
+                                                   treatmentMutation.data.treatment_info.missing_values_remaining);
+                            const missingPercentage = (originalMissing / (treatmentMutation.data.treatment_info.original_shape[0] * treatmentMutation.data.treatment_info.original_shape[1])) * 100;
+                            
+                            if (method === 'drop_rows') {
+                              return `Row deletion was chosen because the missing data percentage was low (${missingPercentage.toFixed(1)}%), making it safe to remove incomplete rows without significant data loss.`;
+                            } else if (method === 'mean_imputation') {
+                              return `Mean imputation was selected for numerical data to preserve the central tendency while filling missing values with statistically reasonable estimates.`;
+                            } else if (method === 'median_imputation') {
+                              return `Median imputation was chosen for numerical data as it's more robust to outliers and works well with skewed distributions.`;
+                            } else if (method === 'mode_imputation') {
+                              return `Mode imputation was selected for categorical data to fill missing values with the most frequently occurring category.`;
+                            } else if (method === 'knn_imputation') {
+                              return `KNN imputation was chosen to leverage relationships between similar records, providing more accurate estimates than simple statistical methods.`;
+                            } else if (method === 'forward_fill') {
+                              return `Forward fill was selected for time-series data to maintain temporal continuity by propagating the last known value.`;
+                            } else {
+                              return `This method was selected based on the data characteristics and missing value patterns to optimize data quality and preserve information.`;
+                            }
+                          })()}
+                        </div>
+                      </div>
+                      {treatmentMutation.data.treatment_info.parameters && Object.keys(treatmentMutation.data.treatment_info.parameters).length > 0 && (
+                        <div>
+                          <span className="font-medium text-blue-800">Parameters used:</span>
+                          <div className="ml-2 mt-1 text-sm">
+                            {Object.entries(treatmentMutation.data.treatment_info.parameters).map(([key, value]) => (
+                              <div key={key}>• {key}: {String(value)}</div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-center space-x-4">
                     <button
-                      onClick={() => downloadMutation.mutate()}
-                      disabled={downloadMutation.isPending}
-                      className="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                      onClick={() => downloadOriginalMutation.mutate()}
+                      disabled={downloadOriginalMutation.isPending}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                     >
                       <span>📥</span>
-                      <span>{downloadMutation.isPending ? 'Preparing Download...' : 'Download Treated Dataset (CSV)'}</span>
+                      <span>{downloadOriginalMutation.isPending ? 'Downloading...' : 'Download Original Dataset (CSV)'}</span>
+                    </button>
+                    <button
+                      onClick={() => downloadTreatedMutation.mutate()}
+                      disabled={downloadTreatedMutation.isPending}
+                      className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                    >
+                      <span>📥</span>
+                      <span>{downloadTreatedMutation.isPending ? 'Downloading...' : 'Download Cleaned Dataset (CSV)'}</span>
                     </button>
                   </div>
                 </>

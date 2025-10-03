@@ -60,10 +60,19 @@ async def get_dataset(dataset_id: str) -> dict:
                     continue
             
             if df is not None and not df.empty:
-                return {"data": df.to_dict(orient='records'), "columns": list(df.columns)}
+                return {"data": df.to_dict(orient='records'), "columns": list(df.columns), "metadata": dataset_metadata}
             else:
                 logger.warning(f"No CSV data found for dataset {dataset_id}")
                 logger.info(f"Searched paths: {csv_paths}")
+                
+                # Check if we have data stored in the metadata itself
+                if 'data' in dataset_metadata:
+                    logger.info(f"Found data in metadata for dataset {dataset_id}")
+                    return {
+                        "data": dataset_metadata['data'], 
+                        "columns": dataset_metadata.get('columns', []),
+                        "metadata": dataset_metadata
+                    }
                 
                 # Generate synthetic data based on metadata for demonstration
                 columns = dataset_metadata.get('metadata', {}).get('columns', [])
@@ -71,11 +80,13 @@ async def get_dataset(dataset_id: str) -> dict:
                 shape = dataset_metadata.get('metadata', {}).get('shape', [0, 0])
                 
                 if len(columns) > 0 and shape[0] > 0:
-                    logger.info(f"Generating synthetic data with {shape[0]} rows and {len(columns)} columns")
+                    # Use the actual shape from metadata, not limited to 100
+                    actual_rows = shape[0]
+                    logger.info(f"Generating synthetic data with {actual_rows} rows and {len(columns)} columns")
                     
                     # Create synthetic data based on column types
                     synthetic_data = []
-                    for i in range(min(100, shape[0])):  # Limit to 100 rows for demo
+                    for i in range(actual_rows):
                         row = {}
                         for col in columns:
                             dtype = dtypes.get(col, 'object')
@@ -92,9 +103,9 @@ async def get_dataset(dataset_id: str) -> dict:
                                     row[col] = f"Value_{i}"
                         synthetic_data.append(row)
                     
-                    return {"data": synthetic_data, "columns": columns}
+                    return {"data": synthetic_data, "columns": columns, "metadata": dataset_metadata}
                 else:
-                    return {"data": [], "columns": columns}
+                    return {"data": [], "columns": columns, "metadata": dataset_metadata}
                 
         except FileNotFoundError:
             logger.warning(f"Dataset metadata not found for {dataset_id}")
@@ -283,29 +294,42 @@ async def get_statistical_insights(dataset_id: str):
 async def get_correlation_insights(dataset_id: str):
     """Get AI-powered correlation insights"""
     return await _perform_analysis(dataset_id, AnalysisType.CORRELATION_INSIGHTS)
-
 @router.get("/{dataset_id}/missing-values", response_model=Dict[str, Any])
 async def get_missing_values_insights(dataset_id: str):
     """Get comprehensive missing values analysis"""
     try:
-        dataset = await get_dataset(dataset_id)
-        df = pd.DataFrame(dataset['data'])
+        # Load from actual file first, then fallback to storage
+        from pathlib import Path
+        from app.core.config import settings
+        from app.api.upload import load_dataset
         
+        dataset_files = list(settings.UPLOAD_DIR.glob(f"{dataset_id}.*"))
+        
+        if dataset_files:
+            filepath = dataset_files[0]
+            df = await load_dataset(filepath)
+            logger.info(f"Loaded dataset from file for missing values insights, shape: {df.shape}")
+        else:
+            dataset = await get_dataset(dataset_id)
+            df = pd.DataFrame(dataset['data'])
+            logger.info(f"Loaded dataset from storage for missing values insights, shape: {df.shape}")
+        
+        # Use the missing values processor for comprehensive analysis
         analysis = await missing_values_processor.analyze_missing_patterns(df)
         
         return {
             "success": True,
-            "analysis_type": "missing_values_analysis",
+            "analysis_type": "missing_values",
             "dataset_id": dataset_id,
             "timestamp": datetime.utcnow().isoformat(),
             "data": analysis
         }
         
     except Exception as e:
-        logger.error(f"Error analyzing missing values for dataset {dataset_id}: {str(e)}")
+        logger.error(f"Error getting missing values insights for dataset {dataset_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error analyzing missing values: {str(e)}"
+            detail=f"Error getting missing values insights: {str(e)}"
         )
 
 @router.get("/{dataset_id}/outliers", response_model=Dict[str, Any])
@@ -478,8 +502,23 @@ async def generate_custom_insights(
 async def get_missing_values_analysis(dataset_id: str):
     """Get comprehensive missing values analysis"""
     try:
-        dataset = await get_dataset(dataset_id)
-        df = pd.DataFrame(dataset['data'])
+        # First try to load from actual file like statistics endpoint does
+        from pathlib import Path
+        from app.core.config import settings
+        from app.api.upload import load_dataset
+        
+        dataset_files = list(settings.UPLOAD_DIR.glob(f"{dataset_id}.*"))
+        
+        if dataset_files:
+            # Load from actual file
+            filepath = dataset_files[0]
+            df = await load_dataset(filepath)
+            logger.info(f"Loaded dataset from file for missing values analysis, shape: {df.shape}")
+        else:
+            # Fallback to get_dataset method
+            dataset = await get_dataset(dataset_id)
+            df = pd.DataFrame(dataset['data'])
+            logger.info(f"Loaded dataset from storage for missing values analysis, shape: {df.shape}")
         
         analysis = await missing_values_processor.analyze_missing_patterns(df)
         
@@ -509,8 +548,22 @@ async def treat_missing_values(
 ):
     """Apply missing value treatment method"""
     try:
-        dataset = await get_dataset(dataset_id)
-        df = pd.DataFrame(dataset['data'])
+        # Load from actual file first, then fallback to storage
+        from pathlib import Path
+        from app.core.config import settings
+        from app.api.upload import load_dataset
+        
+        dataset_files = list(settings.UPLOAD_DIR.glob(f"{dataset_id}.*"))
+        
+        if dataset_files:
+            filepath = dataset_files[0]
+            df = await load_dataset(filepath)
+            logger.info(f"Loaded dataset from file for treatment, shape: {df.shape}")
+            dataset = {"data": df.to_dict('records'), "columns": list(df.columns)}
+        else:
+            dataset = await get_dataset(dataset_id)
+            df = pd.DataFrame(dataset['data'])
+            logger.info(f"Loaded dataset from storage for treatment, shape: {df.shape}")
         
         # Apply treatment
         df_treated, treatment_info = await missing_values_processor.treat_missing_values(
@@ -520,22 +573,41 @@ async def treat_missing_values(
             threshold=threshold
         )
         
-        # Save treated dataset
-        treated_dataset_id = f"{dataset_id}_treated_{method}"
+        # Save treated dataset with consistent naming
+        treated_dataset_id = f"{dataset_id}_treated"
         treated_data = {
             "id": treated_dataset_id,
-            "name": f"{dataset.get('name', 'Dataset')} - {method} treated",
+            "name": f"{dataset.get('name', 'Dataset')} - Cleaned",
             "data": df_treated.to_dict('records'),
+            "columns": list(df_treated.columns),
             "metadata": {
                 "original_dataset_id": dataset_id,
                 "treatment_method": method,
                 "treatment_info": treatment_info,
-                "created_at": datetime.utcnow().isoformat()
+                "created_at": datetime.utcnow().isoformat(),
+                "is_treated": True,
+                "shape": df_treated.shape,
+                "dtypes": df_treated.dtypes.to_dict()
             }
         }
         
         # Store the treated dataset
         local_storage.save_json(f"dataset_{treated_dataset_id}", treated_data)
+        
+        # Also save treatment history
+        try:
+            history = local_storage.load_json(f"treatment_history_{dataset_id}")
+        except:
+            history = {"treatments": []}
+        
+        history["treatments"].append({
+            "method": method,
+            "timestamp": datetime.utcnow().isoformat(),
+            "treatment_info": treatment_info,
+            "treated_dataset_id": treated_dataset_id
+        })
+        
+        local_storage.save_json(f"treatment_history_{dataset_id}", history)
         
         return {
             "success": True,
@@ -563,8 +635,21 @@ async def preview_missing_values_treatment(
 ):
     """Preview what missing value treatment would do"""
     try:
-        dataset = await get_dataset(dataset_id)
-        df = pd.DataFrame(dataset['data'])
+        # Load from actual file first, then fallback to storage
+        from pathlib import Path
+        from app.core.config import settings
+        from app.api.upload import load_dataset
+        
+        dataset_files = list(settings.UPLOAD_DIR.glob(f"{dataset_id}.*"))
+        
+        if dataset_files:
+            filepath = dataset_files[0]
+            df = await load_dataset(filepath)
+            logger.info(f"Loaded dataset from file for preview, shape: {df.shape}")
+        else:
+            dataset = await get_dataset(dataset_id)
+            df = pd.DataFrame(dataset['data'])
+            logger.info(f"Loaded dataset from storage for preview, shape: {df.shape}")
         
         preview = await missing_values_processor.get_treatment_preview(
             df, method, column,
@@ -587,15 +672,44 @@ async def preview_missing_values_treatment(
             detail=f"Error previewing treatment: {str(e)}"
         )
 
+@router.get("/{dataset_id}/treatment-history")
+async def get_treatment_history(dataset_id: str):
+    """Get treatment history for a dataset"""
+    try:
+        history = local_storage.load_json(f"treatment_history_{dataset_id}")
+        return {
+            "success": True,
+            "dataset_id": dataset_id,
+            "history": history,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except FileNotFoundError:
+        return {
+            "success": True,
+            "dataset_id": dataset_id,
+            "history": {"treatments": []},
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting treatment history for dataset {dataset_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting treatment history: {str(e)}"
+        )
+
 @router.get("/{dataset_id}/download/csv")
-async def download_treated_dataset(dataset_id: str):
-    """Download treated dataset as CSV"""
+async def download_dataset_csv(dataset_id: str):
+    """Download dataset as CSV (original or treated)"""
     try:
         from fastapi.responses import StreamingResponse
         import io
         
         dataset = await get_dataset(dataset_id)
         df = pd.DataFrame(dataset['data'])
+        
+        # Determine filename based on whether it's treated or original
+        is_treated = dataset.get('metadata', {}).get('is_treated', False)
+        filename_suffix = "_cleaned" if is_treated else "_original"
         
         # Create CSV in memory
         csv_buffer = io.StringIO()
@@ -606,7 +720,7 @@ async def download_treated_dataset(dataset_id: str):
         response = StreamingResponse(
             io.BytesIO(csv_buffer.getvalue().encode('utf-8')),
             media_type="text/csv",
-            headers={"Content-Disposition": f"attachment; filename={dataset_id}_treated.csv"}
+            headers={"Content-Disposition": f"attachment; filename={dataset_id}{filename_suffix}.csv"}
         )
         
         return response

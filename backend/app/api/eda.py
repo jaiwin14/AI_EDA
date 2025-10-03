@@ -174,7 +174,37 @@ async def get_eda_results(
     """Get EDA results for a dataset"""
     
     try:
-        # Get results from database
+        # First try to load the actual dataset file to ensure consistency
+        dataset_files = list(settings.UPLOAD_DIR.glob(f"{dataset_id}.*"))
+        
+        if dataset_files:
+            # Load from actual file and generate fresh results
+            filepath = dataset_files[0]
+            df = await load_dataset(filepath)
+            logger.info(f"Loaded dataset from file for EDA results, shape: {df.shape}")
+            
+            # Generate fresh basic statistics to ensure consistency
+            eda_processor = EDAProcessor()
+            basic_stats = await eda_processor.generate_basic_statistics(df)
+            
+            return {
+                "dataset_id": dataset_id,
+                "analyses": {
+                    "basic_statistics": basic_stats,
+                    "missing_values": None,
+                    "correlations": None,
+                    "distributions": None,
+                    "outliers": None
+                },
+                "visualizations": [],
+                "summary": {
+                    "total_analyses": 1,
+                    "completed_at": pd.Timestamp.now().isoformat(),
+                    "status": "completed"
+                }
+            }
+        
+        # Fallback: Get results from database
         results = await db_manager.get_eda_results(dataset_id, analysis_type)
         
         if not results:

@@ -1,0 +1,114 @@
+{
+  "dataset_id": "e2c942b8-21e1-4786-ba4b-bc5d39df2fb7",
+  "filename": "e2c942b8-21e1-4786-ba4b-bc5d39df2fb7.csv",
+  "original_filename": "f1_dnf_classification.csv",
+  "metadata": {
+    "shape": [
+      10000,
+      20
+    ],
+    "columns": [
+      "resultId",
+      "raceId",
+      "year",
+      "round",
+      "circuitId",
+      "grid",
+      "positionOrder",
+      "points",
+      "laps",
+      "milliseconds",
+      "fastestLapSpeed",
+      "driverRef",
+      "surname",
+      "forename",
+      "dob",
+      "nationality_x",
+      "constructorRef",
+      "nationality_y",
+      "status",
+      "target_finish"
+    ],
+    "dtypes": {
+      "resultId": "int64",
+      "raceId": "int64",
+      "year": "int64",
+      "round": "int64",
+      "circuitId": "int64",
+      "grid": "int64",
+      "positionOrder": "int64",
+      "points": "float64",
+      "laps": "int64",
+      "milliseconds": "object",
+      "fastestLapSpeed": "object",
+      "driverRef": "object",
+      "surname": "object",
+      "forename": "object",
+      "dob": "object",
+      "nationality_x": "object",
+      "constructorRef": "object",
+      "nationality_y": "object",
+      "status": "object",
+      "target_finish": "int64"
+    },
+    "missing_values": {
+      "resultId": 0,
+      "raceId": 0,
+      "year": 0,
+      "round": 0,
+      "circuitId": 0,
+      "grid": 0,
+      "positionOrder": 0,
+      "points": 471,
+      "laps": 0,
+      "milliseconds": 0,
+      "fastestLapSpeed": 0,
+      "driverRef": 0,
+      "surname": 0,
+      "forename": 0,
+      "dob": 0,
+      "nationality_x": 0,
+      "constructorRef": 0,
+      "nationality_y": 0,
+      "status": 0,
+      "target_finish": 0
+    },
+    "memory_usage": 7194606,
+    "validation_results": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "Highly skewed numeric columns: ['points']",
+        "Columns with significant outliers (>10%): ['points']"
+      ],
+      "recommendations": [
+        "Consider log transformation or other normalization for skewed features",
+        "Consider outlier treatment strategies"
+      ],
+      "validation_summary": {
+        "structure": {
+          "is_valid": true,
+          "errors": [],
+          "warnings": [],
+          "recommendations": []
+        },
+        "data_quality": {
+          "is_valid": true,
+          "warnings": [],
+          "recommendations": []
+        },
+        "ml_readiness": {
+          "warnings": [
+            "Highly skewed numeric columns: ['points']",
+            "Columns with significant outliers (>10%): ['points']"
+          ],
+          "recommendations": [
+            "Consider log transformation or other normalization for skewed features",
+            "Consider outlier treatment strategies"
+          ]
+        }
+      }
+    },
+    "upload_timestamp": "2025-10-03T16:33:48.835176"
+  }
+}
