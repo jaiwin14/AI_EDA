@@ -21,7 +21,7 @@ interface Dataset {
 const Upload: React.FC = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const navigate = useNavigate();
-  const { data: datasets, refetch } = useQuery<Dataset[]>({
+  const { data: datasets, refetch, isLoading } = useQuery<Dataset[]>({
     queryKey: ['datasets'],
     queryFn: async () => {
       const response = await axios.get(`${API_BASE_URL}/api/v1/upload/datasets`);
@@ -143,11 +143,16 @@ const Upload: React.FC = () => {
 
       {/* --- Right Column --- */}
       <div className="right-column">
-        {datasets && datasets.length > 0 && (
+        <header className="datasets-header">
+          <h2>Your Datasets</h2>
+        </header>
+        {isLoading && (
+          <div className="datasets-loader">
+            <span className="circular-loader" />
+          </div>
+        )}
+        {Array.isArray(datasets) && datasets.length > 0 && (
           <section className="datasets-section">
-            <header className="datasets-header">
-              <h2>Your Datasets</h2>
-            </header>
             <div className="table-container">
               <table className="datasets-table">
                 <thead>
@@ -201,6 +206,11 @@ const Upload: React.FC = () => {
               </table>
             </div>
           </section>
+        )}
+        {Array.isArray(datasets) && datasets.length === 0 && (
+          <div className="datasets-empty">
+            <p>No datasets found.</p>
+          </div>
         )}
       </div>
     </div>

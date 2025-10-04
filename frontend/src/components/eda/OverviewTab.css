@@ -1,0 +1,135 @@
+.section {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f3f4f6;
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+}
+
+.section.error {
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+
+.section.raw {
+  background: #fef9c3;
+  border-color: #fde68a;
+}
+
+.section-title {
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  font-size: 1.1rem;
+}
+.title {
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  font-size: 1.1rem;
+}
+
+.section-title.error {
+  color: #b91c1c;
+}
+
+.section-title.raw {
+  color: #b45309;
+}
+
+.key-characteristics {
+  margin-top: 1rem;
+}
+
+.key-characteristics-title {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.key-list {
+  list-style: disc inside;
+  margin-left: 1rem;
+}
+
+.key-list-item {
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  border-radius: 50%;
+  height: 16px;
+  width: 16px;  
+  border-left: 2px solid transparent;
+  border-top: 2px solid transparent;
+  border-right: 2px solid transparent;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.data-quality-title {
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  font-size: 0.95rem;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.success {
+  color: #16a34a;
+  margin-bottom: 1rem;
+}
+
+pre.raw-data {
+  font-size: 0.85rem;
+  color: #b45309;
+  background: #fef3c7;
+  padding: 0.5rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .section {
+    padding: 0.5rem;
+    font-size: 0.95rem;
+  }
+  .section-title {
+    font-size: 1rem;
+  }
+  .data-table th,
+  .data-table td {
+    padding: 0.25rem;
+    font-size: 0.9rem;
+  }
+}

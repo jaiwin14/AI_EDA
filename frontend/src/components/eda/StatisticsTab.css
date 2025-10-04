@@ -1,0 +1,258 @@
+.ai-section {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #e6f7ec;
+  border: 1px solid #a7f3d0;
+  border-radius: 12px;
+  color: #1f2937;
+}
+
+.ai-section.error {
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+
+.ai-section.raw {
+  background: #fef9c3;
+  border-color: #fde68a;
+  color: #1f2937;
+}
+
+.ai-section-title {
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  font-size: 1.1rem;
+}
+
+.ai-section-title.error {
+  color: #b91c1c;
+}
+
+.ai-section-title.raw {
+  color: #1f2937;
+}
+
+.ai-section-title .icon {
+  margin-right: 0.5rem;
+}
+
+.ai-loading {
+  display: flex;
+  align-items: center;
+}
+
+.ai-spinner {
+  animation: spin 1s linear infinite;
+  border-radius: 50%;
+  height: 16px;
+  width: 16px;
+  border-bottom: 2px solid #059669;
+  margin-right: 0.5rem;
+  border-left: 2px solid transparent;
+  border-top: 2px solid transparent;
+  border-right: 2px solid transparent;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.ai-key-list {
+  margin-left: 1rem;
+}
+
+.ai-key-list-item {
+  color: #1f2937;
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+}
+
+.stat-title {
+  font-weight: 600;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  color: #1f2937;
+}
+
+.stat-title-1 {
+  font-weight: 600;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  color: #1f2937;
+}
+
+.stat-overview {
+  background: linear-gradient(135deg, #e0e7ff 0%, #f0f5ff 100%);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #a5b4fc;
+  margin-bottom: 2rem;
+}
+
+.stat-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  font-size: 0.95rem;
+}
+
+@media (min-width: 768px) {
+  .stat-overview-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.stat-overview-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.stat-label {
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.stat-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.stat-value.blue { color: #2563eb; }
+.stat-value.green { color: #059669; }
+.stat-value.purple { color: #7c3aed; }
+.stat-value.orange { color: #ea580c; }
+.stat-value.indigo { color: #4f46e5; }
+.stat-value.red { color: #dc2626; }
+.stat-value.yellow { color: #ca8a04; }
+.stat-value.teal { color: #0d9488; }
+
+.stat-table-container {
+  overflow-x: auto;
+  margin-bottom: 2rem;
+}
+
+.stat-table {
+  width: 100%;
+  font-size: 0.95rem;
+  border-collapse: collapse;
+  border: 1px solid #d1d5db;
+}
+
+.stat-table th,
+.stat-table td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+}
+
+.stat-table th {
+  background: #f3f4f6;
+  font-weight: 600;
+  min-width: 80px;
+}
+
+.stat-table tr:last-child td {
+  border-bottom: none;
+}
+
+.stat-table tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.stat-table .type-badge {
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.type-badge.numerical {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.type-badge.categorical {
+  background: #bbf7d0;
+  color: #059669;
+}
+
+.stat-empty {
+  text-align: center;
+  color: #6b7280;
+  padding: 2rem 0;
+}
+
+.stat-section {
+  margin-bottom: 2rem;
+}
+
+.stat-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.stat-loading {
+  color: #6b7280;
+  text-align: center;
+  margin: 2rem 0;
+}
+
+pre.stat-raw-data {
+  font-size: 0.85rem;
+  color: #1f2937;
+  background: #fef3c7;
+  padding: 0.5rem;
+  overflow-x: auto;
+  margin: 0;
+}
+.stat-raw-data {
+  font-size: 0.95rem;
+  color: #1f2937;
+  background: #fef3c7;
+  padding: 0.5rem;
+  overflow-x: auto;
+  margin: 0;
+}
+.stat-raw-row {
+  margin-bottom: 0.25rem;
+}
+
+.stat-raw-col {
+  margin-bottom: 0.25rem;
+  display: flex;
+}
+
+.stat-raw-key {
+  font-weight: 600;
+  color: #1f2937;
+  margin-right: 0.5rem;
+}
+.stat-raw-value {
+  color: #1f2937;
+}
+.stat-raw-object, .stat-raw-array {
+  margin-bottom: 0.25rem;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .stat-overview {
+    padding: 0.5rem;
+    font-size: 0.95rem;
+  }
+  .stat-title {
+    font-size: 1rem;
+  }
+  .stat-table th,
+  .stat-table td {
+    padding: 0.25rem;
+    font-size: 0.9rem;
+  }
+}

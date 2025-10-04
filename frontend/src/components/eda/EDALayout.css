@@ -1,0 +1,140 @@
+.card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  border: 1px solid #e2e8f0;
+  margin-bottom: 2rem;
+  padding: 2rem;
+}
+
+.card-header {
+  margin-bottom: 1.5rem;
+}
+
+.card-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.card-subtitle {
+  font-size: 1rem;
+  color: #4b5563;
+}
+
+.tables-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.table-container {
+  width: 100%;
+  max-width: 900px;
+  overflow-x: auto;
+  margin-bottom: 0;
+}
+.table-container.small {
+  max-width: 500px;
+}
+
+.main-table {
+  margin-left: auto;
+  margin-right: auto;
+  min-width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.th-cell {
+  padding: 1rem;
+  text-align: left;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.td-label {
+  padding: 0.75rem 1rem;
+  color: #4b5563;
+  font-size: 0.95rem;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.td-value {
+  padding: 0.75rem 1rem;
+  font-weight: bold;
+  word-break: break-word;
+  white-space: normal;
+  font-size: 1rem;
+}
+
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 1rem;
+  text-align: center;
+  color: #1f2937;
+}
+
+.tab-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  justify-content: flex-start;
+}
+
+.tab-btn {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 0.97rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+}
+
+.tab-btn:hover {
+  background: #e0e7ef;
+  color: #1f2937;
+}
+
+.tab-btn.active {
+  background: #1f2937;
+  color: #fff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .table-container {
+    max-width: 100%;
+  }
+  .table-container.small {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .th-cell, .td-label, .td-value {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    font-size: 0.9rem;
+  }
+  .card {
+    padding: 0.5rem;
+  }
+  .section-title {
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+  }
+}

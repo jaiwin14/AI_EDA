@@ -125,26 +125,6 @@ const EDA: React.FC = () => {
           </div>
         </div>
       )}
-      
-      {/* Summary Object */}
-      {edaResults.summary && typeof edaResults.summary === 'object' && (
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">Analysis Summary</h2>
-          </div>
-          <div className="text-gray-700">
-            {(edaResults.summary as any).total_analyses && (
-              <p>Total Analyses: {(edaResults.summary as any).total_analyses}</p>
-            )}
-            {(edaResults.summary as any).status && (
-              <p>Status: {(edaResults.summary as any).status}</p>
-            )}
-            {(edaResults.summary as any).completed_at && (
-              <p>Completed At: {new Date((edaResults.summary as any).completed_at).toLocaleString()}</p>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

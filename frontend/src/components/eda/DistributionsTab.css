@@ -1,0 +1,131 @@
+.dist-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #1f2937;
+}
+
+.dist-title-1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: #1f2937;
+  text-decoration: underline;
+}
+
+.dist-section-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.dist-subtitle {
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.dist-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.dist-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+@media (min-width: 900px) {
+  .dist-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.dist-table-container {
+  overflow-x: auto;
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dist-table {
+  width: 100%;
+  font-size: 0.97rem;
+  border-collapse: collapse;
+  border: 1px solid #e5e7eb;
+}
+
+.dist-table th,
+.dist-table td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+}
+
+.dist-table th {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+.dist-table tr:last-child td {
+  border-bottom: none;
+}
+
+.dist-table tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.dist-info-list {
+  margin-top: 0.5rem;
+  font-size: 0.97rem;
+}
+
+.dist-info-item {
+  margin-bottom: 0.3rem;
+}
+
+.dist-loading {
+  text-align: center;
+  padding: 2rem 0;
+  color: #6b7280;
+}
+
+.dist-spinner {
+  animation: spin 1s linear infinite;
+  border-radius: 50%;
+  height: 32px;
+  width: 32px;
+  border-bottom: 4px solid #2563eb;
+  margin: 0 auto 1rem auto;
+  border-left: 4px solid transparent;
+  border-top: 4px solid transparent;
+  border-right: 4px solid transparent;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.dist-empty {
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.dist-pie-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.7rem;
+}

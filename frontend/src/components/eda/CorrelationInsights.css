@@ -1,0 +1,259 @@
+.corr-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.corr-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.corr-desc {
+  color: #475569;
+  font-size: 1rem;
+}
+
+.corr-tabs {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  border: 1px solid #e5e7eb;
+}
+
+.corr-tab-nav {
+  display: flex;
+  gap: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 2rem;
+}
+
+.corr-tab-btn {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 1rem 0.5rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  color: #64748b;
+  transition: color 0.2s, border-bottom 0.2s;
+}
+
+.corr-tab-btn.active {
+  border-bottom: 2px solid #2563eb;
+  color: #2563eb;
+}
+
+.corr-tab-btn:hover {
+  color: #1e293b;
+}
+
+.corr-tab-content {
+  padding: 2rem;
+}
+
+.corr-heatmap-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.corr-heatmap-plot {
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 1rem;
+  width: max-content;
+  height: max-content;
+  margin: 0 auto;
+}
+
+.corr-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.corr-stat-box {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  border: 1px solid #e5e7eb;
+}
+
+.corr-stat-strong {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+.corr-stat-moderate {
+  color: #ca8a04;
+  background: #fef9c3;
+}
+
+.corr-stat-weak {
+  color: #059669;
+  background: #d1fae5;
+}
+
+.corr-stat-vars {
+  color: #2563eb;
+  background: #dbeafe;
+}
+
+.corr-top-list {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 1rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.corr-top-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background: #f1f5f9;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.ul-style{
+    padding: 0 10px;
+}
+
+.stat-raw-value {
+  color: #1f2937;
+}
+
+.stat-raw-row {
+  margin-bottom: 0.25rem;
+}
+
+.stat-raw-head{
+    margin-top: 0.5rem;
+}
+
+.stat-raw-col {
+  margin-bottom: 0.25rem;
+  display: flex;
+}
+
+.stat-raw-key {
+  font-weight: 600;
+  color: #1f2937;
+  margin-right: 0.5rem;
+}
+
+.stat-raw-object, .stat-raw-array {
+  margin-bottom: 0.25rem;
+}
+
+.corr-top-label {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.corr-top-strength {
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+
+.corr-strength-strong {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.corr-strength-moderate {
+  background: #fef9c3;
+  color: #ca8a04;
+}
+
+.corr-strength-weak {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.corr-strength-value {
+  font-family: monospace;
+  font-weight: bold;
+  color: #334155;
+}
+
+.corr-insights-section,
+.corr-recommend-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.corr-insight-box,
+.corr-recommend-box {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 1rem;
+}
+
+.corr-insight-title,
+.corr-recommend-title {
+  font-weight: 600;
+  margin-bottom: 0.7rem;
+}
+
+.corr-insight-list,
+.corr-recommend-list {
+  list-style: disc inside;
+  margin-left: 1rem;
+}
+
+.corr-insight-item,
+.corr-recommend-item {
+  font-size: 0.97rem;
+  margin-bottom: 0.25rem;
+}
+
+.corr-summary-box {
+  background: #dbeafe;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.corr-summary-title {
+  font-weight: 600;
+  color: #2563eb;
+  margin-bottom: 0.5rem;
+}
+
+.corr-no-data {
+  color: #6b7280;
+  text-align: center;
+  padding: 2rem 0;
+  font-size: 1rem;
+}
+
+.corr-spinner {
+  animation: spin 1s linear infinite;
+  border-radius: 50%;
+  height: 32px;
+  width: 32px;
+  border-bottom: 4px solid #2563eb;
+  margin: 0 auto 1rem auto;
+  border-left: 4px solid transparent;
+  border-top: 4px solid transparent;
+  border-right: 4px solid transparent;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

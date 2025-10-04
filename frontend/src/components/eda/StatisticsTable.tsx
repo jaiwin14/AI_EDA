@@ -1,4 +1,5 @@
 import React from 'react';
+import './StatisticsTable.css';
 
 interface StatisticsTableProps {
   columnName: string;
@@ -13,9 +14,9 @@ const StatisticsTable: React.FC<StatisticsTableProps> = ({
 }) => {
   if (!data || data.length === 0) {
     return (
-      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-        <h6 className="font-medium text-gray-800 mb-2">{title}</h6>
-        <div className="text-gray-500 text-center py-4">No data available</div>
+      <div className="stats-table-card">
+        <h6 className="stats-table-title">{title}</h6>
+        <div className="stats-table-empty">No data available</div>
       </div>
     );
   }
@@ -59,21 +60,21 @@ const StatisticsTable: React.FC<StatisticsTableProps> = ({
   ];
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-      <h6 className="font-medium text-gray-800 mb-3">{title} - {columnName}</h6>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+    <div className="stats-table-card">
+      <h6 className="stats-table-title">{title} - {columnName}</h6>
+      <div className="stats-table-container">
+        <table className="stats-table">
           <thead>
-            <tr className="bg-gray-50">
-              <th className="px-3 py-2 text-left font-medium text-gray-700">Statistic</th>
-              <th className="px-3 py-2 text-left font-medium text-gray-700">Value</th>
+            <tr>
+              <th>Statistic</th>
+              <th>Value</th>
             </tr>
           </thead>
           <tbody>
             {statistics.map((stat, index) => (
-              <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                <td className="px-3 py-2 font-medium text-gray-600">{stat.label}</td>
-                <td className="px-3 py-2 text-gray-800">{stat.value}</td>
+              <tr key={index}>
+                <td className="stats-table-stat-label">{stat.label}</td>
+                <td className="stats-table-stat-value">{stat.value}</td>
               </tr>
             ))}
           </tbody>
