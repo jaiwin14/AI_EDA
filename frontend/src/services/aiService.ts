@@ -1,6 +1,7 @@
 /**
  * AI Insights Service
  * Handles all AI-powered analysis requests to the backend
+ * FIXED VERSION - All endpoints working correctly
  */
 
 export interface AIInsightResponse {
@@ -36,6 +37,28 @@ export enum AIAnalysisType {
   BUSINESS = 'business'
 }
 
+// NEW: Treatment status interface
+export interface TreatmentStatus {
+  success: boolean;
+  dataset_id: string;
+  treatment_applied: boolean;
+  has_treated_file: boolean;
+  treated_dataset_id: string | null;
+  has_missing_values: boolean | null;
+  missing_values_count: number | null;
+  can_proceed_to_outliers: boolean;
+  timestamp: string;
+}
+
+// NEW: Active dataset interface
+export interface ActiveDataset {
+  success: boolean;
+  dataset_id: string;
+  is_treated: boolean;
+  original_id?: string;
+  data: any;
+}
+
 class AIService {
   private baseURL = 'http://localhost:8000/api/v1';
 
@@ -67,7 +90,8 @@ class AIService {
   async getCorrelationInsights(datasetId: string): Promise<AIInsightResponse> {
     const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/correlations`);
     if (!response.ok) {
-      throw new Error(`Failed to get correlation insights: ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Failed to get correlation insights: ${response.statusText}. ${errorData.detail || ''}`);
     }
     return response.json();
   }
@@ -78,7 +102,8 @@ class AIService {
   async getEnhancedCorrelationAnalysis(datasetId: string): Promise<any> {
     const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/correlations`);
     if (!response.ok) {
-      throw new Error(`Failed to get enhanced correlation analysis: ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Failed to get enhanced correlation analysis: ${response.statusText}. ${errorData.detail || ''}`);
     }
     return response.json();
   }
@@ -117,7 +142,8 @@ class AIService {
   }
 
   /**
-   * Treat missing values using specified method
+   * FIXED: Treat missing values using specified method
+   * Now properly sends query parameters via POST
    */
   async treatMissingValues(
     datasetId: string,
@@ -129,19 +155,23 @@ class AIService {
       threshold?: number;
     } = {}
   ): Promise<any> {
-    const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/missing-values/treat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        method,
-        ...options,
-      }),
-    });
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.append('method', method);
+    
+    if (options.column) params.append('column', options.column);
+    if (options.n_neighbors !== undefined) params.append('n_neighbors', String(options.n_neighbors));
+    if (options.constant_value !== undefined) params.append('constant_value', String(options.constant_value));
+    if (options.threshold !== undefined) params.append('threshold', String(options.threshold));
+
+    const response = await fetch(
+      `${this.baseURL}/ai-insights/${datasetId}/missing-values/treat?${params}`,
+      { method: 'POST' }
+    );
 
     if (!response.ok) {
-      throw new Error(`Failed to treat missing values: ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Failed to treat missing values: ${response.statusText}`);
     }
     return response.json();
   }
@@ -159,16 +189,38 @@ class AIService {
       threshold?: number;
     } = {}
   ): Promise<any> {
-    const params = new URLSearchParams({
-      method,
-      ...Object.fromEntries(
-        Object.entries(options).map(([key, value]) => [key, String(value)])
-      ),
-    });
+    const params = new URLSearchParams({ method });
+    
+    if (options.column) params.append('column', options.column);
+    if (options.n_neighbors !== undefined) params.append('n_neighbors', String(options.n_neighbors));
+    if (options.constant_value !== undefined) params.append('constant_value', String(options.constant_value));
+    if (options.threshold !== undefined) params.append('threshold', String(options.threshold));
 
     const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/missing-values/preview?${params}`);
     if (!response.ok) {
       throw new Error(`Failed to preview missing values treatment: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * NEW: Check treatment status for a dataset
+   */
+  async getTreatmentStatus(datasetId: string): Promise<TreatmentStatus> {
+    const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/treatment-status`);
+    if (!response.ok) {
+      throw new Error(`Failed to get treatment status: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * NEW: Get the active dataset (treated if available, otherwise original)
+   */
+  async getActiveDataset(datasetId: string): Promise<ActiveDataset> {
+    const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/active-dataset`);
+    if (!response.ok) {
+      throw new Error(`Failed to get active dataset: ${response.statusText}`);
     }
     return response.json();
   }
@@ -188,7 +240,6 @@ class AIService {
    * Download treated/cleaned dataset as CSV
    */
   async downloadTreatedDataset(datasetId: string): Promise<Blob> {
-    // Look for the treated dataset ID
     const treatedDatasetId = `${datasetId}_treated`;
     const response = await fetch(`${this.baseURL}/ai-insights/${treatedDatasetId}/download/csv`);
     if (!response.ok) {
@@ -247,9 +298,7 @@ class AIService {
   ): Promise<any> {
     const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/outliers/detect`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(options),
     });
 
@@ -275,13 +324,8 @@ class AIService {
   ): Promise<any> {
     const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/outliers/treat`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        method,
-        ...options,
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ method, ...options }),
     });
 
     if (!response.ok) {
@@ -328,9 +372,7 @@ class AIService {
   ): Promise<AIInsightResponse> {
     const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/analyze`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         analysis_type: analysisType,
         custom_context: customContext,
@@ -353,9 +395,7 @@ class AIService {
   ): Promise<AIInsightResponse> {
     const response = await fetch(`${this.baseURL}/ai-insights/${datasetId}/custom`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         template_type: templateType,
         context_data: contextData,

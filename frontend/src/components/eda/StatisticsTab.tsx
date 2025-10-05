@@ -4,32 +4,6 @@ import NumericalVariableCard from './NumericalVariableCard';
 import CategoricalVariableCard from './CategoricalVariableCard';
 import './StatisticsTab.css';
 
-// Helper function to render objects as nested divs
-function renderObjectAsDiv(obj: any, level: number = 0): JSX.Element {
-  console.log('AI Summary:', obj);
-  if (obj === null || obj === undefined) return <div className="stat-raw-row">null</div>;
-  if (typeof obj !== 'object') return <div className="stat-raw-row">{String(obj)}</div>;
-  if (Array.isArray(obj)) {
-    return (
-      <div className="stat-raw-array" style={{ marginLeft: level * 16 }}>
-        {obj.map((item, idx) => (
-          <div key={idx}>{renderObjectAsDiv(item, level + 1)}</div>
-        ))}
-      </div>
-    );
-  }
-  return (
-    <div className="stat-raw-object" style={{ marginLeft: level * 16 }}>
-      {Object.entries(obj).map(([key, value]) => (
-        <div key={key} className="stat-raw-col">
-          <span className="stat-raw-key">{key}:</span>
-          <span className="stat-raw-value">{renderObjectAsDiv(value, level + 1)}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 interface StatisticsTabProps {
   datasetId: string;
   statisticalAnalysis: any;
@@ -95,28 +69,8 @@ const StatisticsTab: React.FC<StatisticsTabProps> = ({ datasetId, statisticalAna
         );
       })()}
       
-      {aiSummary && !aiSummary?.data?.summary?.summary_points && (
-        <div className="ai-section raw">
-          <h3 className="ai-section-title raw">
-            AI Statistical Summary (Raw)
-          </h3>
-          <pre className="stat-raw-col">
-            Success: {renderObjectAsDiv(aiSummary?.success)}
-          </pre>
-          <pre className="stat-raw-col">
-            Analysis Type: {renderObjectAsDiv(aiSummary?.analysis_type)}
-          </pre>
-          <pre className="stat-raw-col">
-            Dataset ID: {renderObjectAsDiv(aiSummary?.dataset_id)}
-          </pre>
-          <pre className="stat-raw-col">
-            Timestamp: {aiSummary?.timestamp ? new Date(aiSummary.timestamp).toLocaleString() : ''}
-          </pre>
-          <pre className="stat-raw-data">
-            Summary points: {renderObjectAsDiv(aiSummary?.data?.insights)}
-          </pre>
-        </div>
-      )}
+      {aiSummary && !aiSummary?.data?.summary?.summary_points
+      }
       
       <h3 className="stat-title">Statistical Analysis</h3>
       

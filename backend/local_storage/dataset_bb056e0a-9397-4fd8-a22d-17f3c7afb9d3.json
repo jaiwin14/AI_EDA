@@ -142,6 +142,9 @@
         }
       }
     },
-    "upload_timestamp": "2025-10-03T16:46:58.493245"
+    "upload_timestamp": "2025-10-03T16:46:58.493245",
+    "treatment_applied": true,
+    "treated_dataset_id": "bb056e0a-9397-4fd8-a22d-17f3c7afb9d3_treated",
+    "treatment_timestamp": "2025-10-05T15:07:42.428945"
   }
 }
