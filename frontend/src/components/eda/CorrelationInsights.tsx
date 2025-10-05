@@ -47,30 +47,30 @@ const CorrelationInsights: React.FC<CorrelationInsightsProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'heatmap' | 'insights' | 'recommendations'>('heatmap');
 
-  // Fetch enhanced correlation analysis
-  const { data: enhancedData, isLoading: aiLoading, error: aiError } = useQuery({
-    queryKey: ['enhanced-correlation-analysis', datasetId],
-    queryFn: () => aiService.getEnhancedCorrelationAnalysis(datasetId),
+  // Fetch correlation insights
+  const { data: correlationData, isLoading: aiLoading, error: aiError } = useQuery({
+    queryKey: ['correlation-insights', datasetId],
+    queryFn: () => aiService.getCorrelationInsights(datasetId),
     enabled: !!datasetId,
     retry: 2,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  const correlationInsights = enhancedData?.data?.correlation_insights;
-  const fallbackInsights = enhancedData?.data?.insights || [];
-  const allCorrelations: CorrelationData[] = enhancedData?.data?.correlations || [];
-  const correlationMatrix = enhancedData?.data?.correlation_matrix || {};
+  const correlationInsights = correlationData?.data;
+  const fallbackInsights: string[] = [];
+  const allCorrelations: CorrelationData[] = correlationInsights?.correlations || [];
+  const correlationMatrix = correlationInsights?.correlation_matrix || {};
   const visualizationData = propCorrelationData;
 
   // Debug logging
   React.useEffect(() => {
-    if (enhancedData) {
-      console.log('🔍 Correlation Debug - Enhanced Data:', enhancedData);
+    if (correlationData) {
+      console.log('🔍 Correlation Debug - Correlation Data:', correlationData);
       console.log('📊 Correlations found:', allCorrelations.length);
       console.log('💡 Insights found:', fallbackInsights.length);
       console.log('🔗 Matrix keys:', Object.keys(correlationMatrix).length);
     }
-  }, [enhancedData, allCorrelations, fallbackInsights, correlationMatrix]);
+  }, [correlationData, allCorrelations, fallbackInsights, correlationMatrix]);
 
   // Process correlation data for better display
   const processedCorrelations = useMemo(() => {
@@ -272,7 +272,7 @@ const CorrelationInsights: React.FC<CorrelationInsightsProps> = ({
                     </details>
                   </div>
                 </div>
-              ) : !enhancedData ? (
+              ) : !correlationData ? (
                 <div className="corr-insight-box" style={{background: "#fef9c3", borderColor: "#fde68a"}}>
                   <div>
                     <h4 className="corr-insight-title" style={{color: "#ca8a04"}}>No Data Available</h4>
@@ -287,8 +287,8 @@ const CorrelationInsights: React.FC<CorrelationInsightsProps> = ({
                     <details>
                       <summary>Debug Information</summary>
                       <div>
-                        <p>Response received: {enhancedData ? 'Yes' : 'No'}</p>
-                        <p>Data structure: {JSON.stringify(Object.keys(enhancedData?.data || {}))}</p>
+                        <p>Response received: {correlationData ? 'Yes' : 'No'}</p>
+                        <p>Data structure: {JSON.stringify(Object.keys(correlationData?.data || {}))}</p>
                         <p>Correlations array length: {allCorrelations.length}</p>
                         <p>Insights array length: {fallbackInsights.length}</p>
                       </div>
@@ -313,88 +313,88 @@ const CorrelationInsights: React.FC<CorrelationInsightsProps> = ({
                         Raw Data:
                       </pre>
                       <pre className="stat-raw-col">
-                        Success: {renderObjectAsDiv(enhancedData?.success)}
+                        Success: {renderObjectAsDiv(correlationData?.success)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Analysis Type: {renderObjectAsDiv(enhancedData?.analysis_type)}
+                        Analysis Type: {renderObjectAsDiv(correlationData?.analysis_type)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Dataset Id: {renderObjectAsDiv(enhancedData?.dataset_id)}
+                        Dataset Id: {renderObjectAsDiv(correlationData?.dataset_id)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Timestamp: {enhancedData?.timestamp ? new Date(enhancedData.timestamp).toLocaleString() : ''}
+                        Timestamp: {correlationData?.timestamp ? new Date(correlationData.timestamp).toLocaleString() : ''}
                       </pre>
                       <pre className="stat-raw-col">
-                        Data Insights: {renderObjectAsDiv(enhancedData?.data?.insights)}
+                        Data Insights: {renderObjectAsDiv(correlationData?.data?.insights)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Data Correlation: {renderObjectAsDiv(enhancedData?.data?.correlations)}
+                        Data Correlation: {renderObjectAsDiv(correlationData?.data?.correlations)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Strong Correlations: {renderObjectAsDiv(enhancedData?.data?.strong_correlations)}
+                        Strong Correlations: {renderObjectAsDiv(correlationData?.data?.strong_correlations)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Element Id Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.element_id)}
+                        Element Id Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.element_id)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Version Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.version)}
+                        Version Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.version)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Changeset Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.changeset)}
+                        Changeset Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.changeset)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Gauge Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.gauge)}
+                        Gauge Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.gauge)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Maxspeed Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.maxspeed)}
+                        Maxspeed Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.maxspeed)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Tracks Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.tracks)}
+                        Tracks Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.tracks)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Frequency Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.frequency)}
+                        Frequency Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.frequency)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Voltage Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.voltage)}
+                        Voltage Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.voltage)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Bridge Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.bridge)}
+                        Bridge Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.bridge)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Tunnel Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.tunnel)}
+                        Tunnel Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.tunnel)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Cutting Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.cutting)}
+                        Cutting Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.cutting)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Embankment Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.embankment)}
+                        Embankment Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.embankment)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Layer Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.layer)}
+                        Layer Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.layer)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Country Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.country)}
+                        Country Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.country)}
                       </pre>
                       <pre className="stat-raw-col">
-                        State Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.state)}
+                        State Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.state)}
                       </pre>
                       <pre className="stat-raw-col">
-                        City Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.city)}
+                        City Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.city)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Description Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.description)}
+                        Description Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.description)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Wikipedia Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.wikipedia)}
+                        Wikipedia Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.wikipedia)}
                       </pre>
                       <pre className="stat-raw-col">
-                        Wikidata Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.wikidata)}
+                        Wikidata Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.wikidata)}
                       </pre>
                       <pre className="stat-raw-col">
-                        latitude Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.lat)}
+                        latitude Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.lat)}
                       </pre>
                       <pre className="stat-raw-col">
-                        longitude Correlations: {renderObjectAsDiv(enhancedData?.data?.correlation_matrix?.lon)}
+                        longitude Correlations: {renderObjectAsDiv(correlationData?.data?.correlation_matrix?.lon)}
                       </pre>
                     </div>
                   </details>

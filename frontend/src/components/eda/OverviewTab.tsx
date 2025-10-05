@@ -35,24 +35,66 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ datasetId, basicStats, missin
         </div>
       )}
 
-      {aiOverview?.data?.overview && (
+      {/* Render basic dataset overview */}
+      {aiOverview?.data && (
         <div className="section">
-          <h3 className="title">
-            AI Dataset Overview
-          </h3>
-          <div>
-            <p>{aiOverview.data.overview.overview_line_1}</p>
-            <p>{aiOverview.data.overview.overview_line_2}</p>
-            {aiOverview.data.overview.key_characteristics && (
-              <div className="key-characteristics">
-                <h4 className="key-characteristics-title">Key Characteristics:</h4>
-                <ul className="key-list">
-                  {aiOverview.data.overview.key_characteristics.map((characteristic: string, index: number) => (
-                    <li key={index} className="key-list-item">{characteristic}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+          <h3 className="title">Dataset Overview</h3>
+          <div className="overview-grid">
+            <div className="overview-item">
+              <span className="overview-label">Shape:</span>
+              <span className="overview-value">
+                {aiOverview.data.shape?.[0] || 0} rows × {aiOverview.data.shape?.[1] || 0} columns
+              </span>
+            </div>
+            <div className="overview-item">
+              <span className="overview-label">Duplicate Rows:</span>
+              <span className="overview-value">{aiOverview.data.duplicate_rows || 0}</span>
+            </div>
+            <div className="overview-item">
+              <span className="overview-label">Memory Usage:</span>
+              <span className="overview-value">{aiOverview.data.memory_usage || '0 MB'}</span>
+            </div>
+          </div>
+
+          {/* Columns List */}
+          <div className="section">
+            <h4 className="title">Columns ({aiOverview.data.columns?.length || 0})</h4>
+            <div className="columns-grid">
+              {aiOverview.data.columns?.map((column: string, index: number) => (
+                <div key={index} className="column-card">
+                  <span className="column-name">{column}</span>
+                  <span className="column-index">#{index + 1}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Data Types Table */}
+          <div className="section">
+            <h4 className="title">Data Types</h4>
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Column</th>
+                    <th>Data Type</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {aiOverview.data.dtypes &&
+                    Object.entries(aiOverview.data.dtypes).map(([column, dtype]) => (
+                      <tr key={column}>
+                        <td>{column}</td>
+                        <td>
+                          <span className={`dtype-badge dtype-${dtype}`}>
+                            {String(dtype)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -98,33 +140,6 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ datasetId, basicStats, missin
           </div>
         );
       })()}
-
-      {/* Fallback: Show raw AI data if structure is different */}
-      {aiOverview && !(() => {
-        if (aiOverview?.data?.overview) return true;
-        if (aiOverview?.data?.insights) {
-          try {
-            const insightsStr = aiOverview.data.insights;
-            const jsonMatch = insightsStr.match(/```json\n([\s\S]*?)\n```/);
-            if (jsonMatch) {
-              const parsedData = JSON.parse(jsonMatch[1]);
-              return parsedData?.overview;
-            }
-          } catch (e) {
-            // ignore
-          }
-        }
-        return false;
-      })() && (
-        <div className="section raw">
-          <h3 className="title raw">
-            AI Dataset Overview (Raw)
-          </h3>
-          <pre className="raw-data">
-            {JSON.stringify(aiOverview, null, 2)}
-          </pre>
-        </div>
-      )}
 
       <h3 className="data-quality-title">Data Quality Summary</h3>
       {missingValues.columns_with_missing && 

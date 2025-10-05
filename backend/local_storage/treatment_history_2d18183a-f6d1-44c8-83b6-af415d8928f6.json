@@ -1,0 +1,19 @@
+{
+  "treatments": [
+    {
+      "method": "mode_imputation",
+      "column": "Date_of_Last_Visit",
+      "timestamp": "2025-10-05T18:05:47.149491",
+      "treated_dataset_id": "2d18183a-f6d1-44c8-83b6-af415d8928f6_treated",
+      "original_shape": [
+        334,
+        15
+      ],
+      "final_shape": [
+        334,
+        15
+      ],
+      "missing_removed": 17
+    }
+  ]
+}

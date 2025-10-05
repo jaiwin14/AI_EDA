@@ -58,20 +58,8 @@ const EDALayout: React.FC<EDALayoutProps> = ({
                      basicStats.total_columns?.toLocaleString() || 'N/A'}
                   </td>
                 </tr>
-                <tr>
-                  <td className="td-label">Missing Cells</td>
-                  <td className="td-value">
-                    {statisticalAnalysis?.dataset_overview?.total_missing_cells?.toLocaleString() || 'N/A'}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="td-label">Missing Cells (%)</td>
-                  <td className="td-value ">
-                    {statisticalAnalysis?.dataset_overview?.missing_cells_percentage !== undefined 
-                      ? `${statisticalAnalysis.dataset_overview.missing_cells_percentage.toFixed(1)}%`
-                      : missingValues.overall_missing_percentage?.toFixed(1) + '%' || '0%'}
-                  </td>
-                </tr>
+                
+                
                 <tr>
                   <td className="td-label">Duplicate Rows</td>
                   <td className="td-value">

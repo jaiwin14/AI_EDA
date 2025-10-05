@@ -23,45 +23,54 @@ const PieChart: React.FC<PieChartProps> = ({
     );
   }
 
-  // Sort by value and take top categories
+  // Sort by value and take top categories if specified
   const sortedEntries = Object.entries(data)
-    .sort(([,a], [,b]) => b - a)
+    .sort(([, a], [, b]) => b - a)
     .slice(0, maxCategories);
-
-  // Group remaining categories as "Others" if there are more
-  const remainingEntries = Object.entries(data).slice(maxCategories);
-  if (remainingEntries.length > 0) {
-    const othersSum = remainingEntries.reduce((sum, [, value]) => sum + value, 0);
-    sortedEntries.push(['Others', othersSum]);
-  }
 
   const labels = sortedEntries.map(([key]) => key);
   const values = sortedEntries.map(([, value]) => value);
+
+  // Calculate percentages manually for better control
+  const total = values.reduce((sum, v) => sum + v, 0);
+  const formattedPercents = values.map(v => ((v / total) * 100).toFixed(1) + '%');
 
   const pieTrace = {
     labels,
     values,
     type: 'pie' as const,
     hole: 0.3,
-    textinfo: 'label+percent',
-    textposition: 'outside',
+    text: formattedPercents,
+    textinfo: 'label+text',
+    texttemplate: '%{label}<br>(%{text})',
+    textposition: 'outside' as const,
+    automargin: true,
+    hovertemplate: '%{label}: %{percent} (%{value})<extra></extra>',
     marker: {
       colors: [
         '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-        '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
-      ]
+        '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+        '#F1948A', '#5DADE2', '#A3E4D7', '#F8C471', '#C39BD3'
+      ],
+      line: { color: '#fff', width: 2 }
+    },
+    textfont: {
+      size: 12,
+      color: '#000'
     }
   };
 
   const layout = {
     title: `${title} - ${columnName}`,
     showlegend: true,
-    height: 400,
+    height: 450,
+    margin: { t: 60, b: 40, l: 40, r: 40 },
     legend: {
       orientation: 'v' as const,
-      x: 1.02,
+      x: 1.05,
       y: 0.5
-    }
+    },
+    font: { size: 12 },
   };
 
   return (
@@ -70,7 +79,7 @@ const PieChart: React.FC<PieChartProps> = ({
         data={[pieTrace]}
         layout={layout}
         useResizeHandler={true}
-        style={{ width: '100%', height: '400px' }}
+        style={{ width: '100%', height: '450px' }}
         config={{ displayModeBar: true, responsive: true }}
       />
     </div>

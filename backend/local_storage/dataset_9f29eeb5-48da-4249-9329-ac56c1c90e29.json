@@ -1,0 +1,105 @@
+{
+  "dataset_id": "9f29eeb5-48da-4249-9329-ac56c1c90e29",
+  "filename": "9f29eeb5-48da-4249-9329-ac56c1c90e29.csv",
+  "original_filename": "amazon.csv",
+  "metadata": {
+    "shape": [
+      1465,
+      16
+    ],
+    "columns": [
+      "product_id",
+      "product_name",
+      "category",
+      "discounted_price",
+      "actual_price",
+      "discount_percentage",
+      "rating",
+      "rating_count",
+      "about_product",
+      "user_id",
+      "user_name",
+      "review_id",
+      "review_title",
+      "review_content",
+      "img_link",
+      "product_link"
+    ],
+    "dtypes": {
+      "product_id": "object",
+      "product_name": "object",
+      "category": "object",
+      "discounted_price": "object",
+      "actual_price": "object",
+      "discount_percentage": "object",
+      "rating": "object",
+      "rating_count": "object",
+      "about_product": "object",
+      "user_id": "object",
+      "user_name": "object",
+      "review_id": "object",
+      "review_title": "object",
+      "review_content": "object",
+      "img_link": "object",
+      "product_link": "object"
+    },
+    "missing_values": {
+      "product_id": 0,
+      "product_name": 0,
+      "category": 0,
+      "discounted_price": 0,
+      "actual_price": 0,
+      "discount_percentage": 0,
+      "rating": 0,
+      "rating_count": 2,
+      "about_product": 0,
+      "user_id": 0,
+      "user_name": 0,
+      "review_id": 0,
+      "review_title": 0,
+      "review_content": 0,
+      "img_link": 0,
+      "product_link": 0
+    },
+    "memory_usage": 10865733,
+    "validation_results": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "No numeric columns found",
+        "High cardinality categorical columns: ['product_id', 'product_name', 'about_product', 'user_id', 'user_name', 'review_id', 'review_title', 'review_content', 'img_link', 'product_link']"
+      ],
+      "recommendations": [
+        "Ensure dataset has numeric features for ML algorithms",
+        "Consider feature engineering for high cardinality categorical variables"
+      ],
+      "validation_summary": {
+        "structure": {
+          "is_valid": true,
+          "errors": [],
+          "warnings": [],
+          "recommendations": []
+        },
+        "data_quality": {
+          "is_valid": true,
+          "warnings": [],
+          "recommendations": []
+        },
+        "ml_readiness": {
+          "warnings": [
+            "No numeric columns found",
+            "High cardinality categorical columns: ['product_id', 'product_name', 'about_product', 'user_id', 'user_name', 'review_id', 'review_title', 'review_content', 'img_link', 'product_link']"
+          ],
+          "recommendations": [
+            "Ensure dataset has numeric features for ML algorithms",
+            "Consider feature engineering for high cardinality categorical variables"
+          ]
+        }
+      }
+    },
+    "upload_timestamp": "2025-10-05T17:57:58.697823",
+    "treatment_applied": true,
+    "treated_dataset_id": "9f29eeb5-48da-4249-9329-ac56c1c90e29_treated",
+    "treatment_timestamp": "2025-10-05T17:58:49.124083"
+  }
+}

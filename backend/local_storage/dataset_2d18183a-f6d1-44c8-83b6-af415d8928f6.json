@@ -95,6 +95,9 @@
         }
       }
     },
-    "upload_timestamp": "2025-09-09T16:44:51.609184"
+    "upload_timestamp": "2025-09-09T16:44:51.609184",
+    "treatment_applied": true,
+    "treated_dataset_id": "2d18183a-f6d1-44c8-83b6-af415d8928f6_treated",
+    "treatment_timestamp": "2025-10-05T18:05:47.146971"
   }
 }
