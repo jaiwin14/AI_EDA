@@ -31,6 +31,11 @@ const Navbar: React.FC = () => {
             </Link>
           </li>
           <li>
+            <Link to="/preprocessing" className={isActive('/preprocessing') ? 'active' : ''}>
+              Preprocessing
+            </Link>
+          </li>
+          <li>
             <Link to="/models" className={isActive('/models') ? 'active' : ''}>
               Models
             </Link>

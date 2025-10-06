@@ -1,0 +1,146 @@
+{
+  "dataset_id": "1f16ae42-c600-40de-b30e-a7ae181b0517",
+  "filename": "1f16ae42-c600-40de-b30e-a7ae181b0517.csv",
+  "original_filename": "f8fab45e-9ac2-4a35-8e33-5f0d8a574318_treated.csv",
+  "metadata": {
+    "shape": [
+      36,
+      32
+    ],
+    "columns": [
+      "element_id",
+      "element_type",
+      "timestamp",
+      "version",
+      "changeset",
+      "user",
+      "railway_type",
+      "name",
+      "operator",
+      "gauge",
+      "electrified",
+      "maxspeed",
+      "usage",
+      "service",
+      "tracks",
+      "frequency",
+      "voltage",
+      "bridge",
+      "tunnel",
+      "cutting",
+      "embankment",
+      "layer",
+      "country",
+      "state",
+      "city",
+      "description",
+      "wikipedia",
+      "wikidata",
+      "geometry",
+      "lat",
+      "lon",
+      "all_tags"
+    ],
+    "dtypes": {
+      "element_id": "int64",
+      "element_type": "object",
+      "timestamp": "object",
+      "version": "int64",
+      "changeset": "int64",
+      "user": "object",
+      "railway_type": "object",
+      "name": "object",
+      "operator": "object",
+      "gauge": "float64",
+      "electrified": "object",
+      "maxspeed": "float64",
+      "usage": "object",
+      "service": "object",
+      "tracks": "float64",
+      "frequency": "float64",
+      "voltage": "float64",
+      "bridge": "float64",
+      "tunnel": "float64",
+      "cutting": "float64",
+      "embankment": "float64",
+      "layer": "float64",
+      "country": "float64",
+      "state": "float64",
+      "city": "float64",
+      "description": "float64",
+      "wikipedia": "float64",
+      "wikidata": "float64",
+      "geometry": "object",
+      "lat": "float64",
+      "lon": "float64",
+      "all_tags": "object"
+    },
+    "missing_values": {
+      "element_id": 0,
+      "element_type": 0,
+      "timestamp": 0,
+      "version": 0,
+      "changeset": 0,
+      "user": 0,
+      "railway_type": 0,
+      "name": 0,
+      "operator": 0,
+      "gauge": 0,
+      "electrified": 0,
+      "maxspeed": 0,
+      "usage": 0,
+      "service": 0,
+      "tracks": 0,
+      "frequency": 0,
+      "voltage": 0,
+      "bridge": 0,
+      "tunnel": 0,
+      "cutting": 0,
+      "embankment": 0,
+      "layer": 0,
+      "country": 0,
+      "state": 0,
+      "city": 0,
+      "description": 0,
+      "wikipedia": 0,
+      "wikidata": 0,
+      "geometry": 0,
+      "lat": 0,
+      "lon": 0,
+      "all_tags": 0
+    },
+    "memory_usage": 31810,
+    "validation_results": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "High cardinality categorical columns: ['element_type', 'timestamp', 'user', 'railway_type', 'name', 'operator', 'electrified', 'usage', 'service', 'geometry', 'all_tags']"
+      ],
+      "recommendations": [
+        "Consider feature engineering for high cardinality categorical variables"
+      ],
+      "validation_summary": {
+        "structure": {
+          "is_valid": true,
+          "errors": [],
+          "warnings": [],
+          "recommendations": []
+        },
+        "data_quality": {
+          "is_valid": true,
+          "warnings": [],
+          "recommendations": []
+        },
+        "ml_readiness": {
+          "warnings": [
+            "High cardinality categorical columns: ['element_type', 'timestamp', 'user', 'railway_type', 'name', 'operator', 'electrified', 'usage', 'service', 'geometry', 'all_tags']"
+          ],
+          "recommendations": [
+            "Consider feature engineering for high cardinality categorical variables"
+          ]
+        }
+      }
+    },
+    "upload_timestamp": "2025-10-04T04:42:50.544343"
+  }
+}

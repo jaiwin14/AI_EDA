@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import EDALayout from '../components/eda/EDALayout';
+import { Link } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -93,6 +94,11 @@ const EDA: React.FC = () => {
 
   return (
     <div>
+      <div className="mb-4 flex justify-end">
+        <Link to={`/preprocessing/${datasetId}`} className="btn btn-primary">
+          Go to Preprocessing
+        </Link>
+      </div>
       <EDALayout 
         datasetId={datasetId!}
         edaResults={edaResults}

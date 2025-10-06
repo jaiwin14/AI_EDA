@@ -8,6 +8,7 @@ import Upload from './pages/Upload';
 import EDA from './pages/EDA';
 import Models from './pages/Models';
 import Predictions from './pages/Predictions';
+import Preprocessing from './pages/Preprocessing';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -30,6 +31,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/upload" element={<Upload />} />
               <Route path="/eda/:datasetId?" element={<EDA />} />
+              <Route path="/preprocessing/:datasetId?" element={<Preprocessing />} />
               <Route path="/models/:datasetId?" element={<Models />} />
               <Route path="/predictions/:modelId?" element={<Predictions />} />
             </Routes>

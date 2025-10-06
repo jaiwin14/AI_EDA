@@ -22,6 +22,7 @@ from app.api.models import router as models_router
 from app.api.predictions import router as predictions_router
 from app.api.explanations import router as explanations_router
 from app.api.ai_insights import router as ai_insights_router
+from app.api.preprocessing import router as preprocessing_router
 from app.api.correlation_insights import router as correlation_router
 from app.api.analyze import router as analyze_router
 from app.core.config import settings
@@ -114,6 +115,7 @@ app.include_router(predictions_router, prefix="/api/v1", tags=["predictions"])
 app.include_router(explanations_router, prefix="/api/v1", tags=["explanations"])
 app.include_router(ai_insights_router, prefix="/api/v1", tags=["ai-insights"])
 app.include_router(correlation_router, prefix="/api/v1", tags=["correlation"])
+app.include_router(preprocessing_router, prefix="/api/v1", tags=["preprocessing"])
 
 # Global exception handler
 @app.exception_handler(Exception)
