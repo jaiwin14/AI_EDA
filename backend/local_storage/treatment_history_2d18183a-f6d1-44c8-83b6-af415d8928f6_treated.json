@@ -1,0 +1,19 @@
+{
+  "treatments": [
+    {
+      "method": "forward_fill",
+      "column": null,
+      "timestamp": "2025-10-06T14:21:56.273830",
+      "treated_dataset_id": "2d18183a-f6d1-44c8-83b6-af415d8928f6_treated_treated",
+      "original_shape": [
+        334,
+        15
+      ],
+      "final_shape": [
+        334,
+        15
+      ],
+      "missing_removed": 13
+    }
+  ]
+}

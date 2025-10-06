@@ -1,0 +1,179 @@
+/* Predictions.css */
+
+/* --- Page Header --- */
+.page-header {
+margin-bottom: 2rem;
+}
+
+.page-title {
+font-size: 2rem;
+font-weight: 700;
+color: #1a202c;
+margin-bottom: 0.5rem;
+}
+
+.page-subtitle {
+font-size: 1rem;
+color: #718096;
+}
+
+/* --- Model Info Box --- */
+.model-info-box {
+margin-top: 1.5rem;
+padding: 1rem;
+background-color: #f7fafc;
+border: 1px solid #e2e8f0;
+border-radius: 0.5rem;
+}
+
+.model-info-title {
+font-weight: 600;
+margin-bottom: 0.75rem;
+color: #2d3748;
+}
+
+.info-label {
+font-weight: 500;
+color: #718096;
+margin-right: 0.5rem;
+}
+
+.form-field-description {
+font-size: 0.75rem;
+color: #718096;
+margin-top: 0.25rem;
+}
+
+/* --- Prediction Results --- */
+.results-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 1.5rem;
+align-items: start;
+}
+
+.prediction-main-result {
+padding: 2rem;
+background-color: #f0fff4;
+border: 1px solid #9ae6b4;
+border-radius: 0.5rem;
+text-align: center;
+}
+
+.prediction-value {
+font-size: 2.5rem;
+font-weight: 700;
+color: #2f855a;
+margin-bottom: 0.5rem;
+}
+
+.prediction-label {
+font-size: 0.875rem;
+color: #38a169;
+}
+
+.results-details {
+display: flex;
+flex-direction: column;
+gap: 1rem;
+}
+
+.prediction-extra-info {
+padding: 1rem;
+background-color: #f7fafc;
+border: 1px solid #e2e8f0;
+border-radius: 0.5rem;
+}
+
+.confidence-value {
+font-size: 1.75rem;
+font-weight: 600;
+color: #2d3748;
+}
+
+.probabilities-list {
+margin-top: 0.5rem;
+display: flex;
+flex-direction: column;
+gap: 0.5rem;
+}
+
+.probability-item {
+display: flex;
+justify-content: space-between;
+font-size: 0.875rem;
+}
+
+.probability-item span:last-child {
+font-weight: 500;
+}
+
+/* --- Batch Upload Box --- */
+.batch-upload-box {
+text-align: center;
+padding: 2rem;
+border: 2px dashed #e2e8f0;
+border-radius: 0.5rem;
+background-color: #fcfdff;
+}
+
+.batch-upload-icon {
+font-size: 2.5rem;
+margin-bottom: 1rem;
+}
+
+.batch-upload-box p {
+color: #718096;
+margin-bottom: 1.5rem;
+}
+
+/* --- About/Instructions Section --- */
+.about-box {
+background-color: #f7fafc;
+border: 1px solid #e2e8f0;
+border-radius: 0.5rem;
+padding: 1.5rem;
+}
+
+.about-title {
+display: flex;
+align-items: center;
+font-size: 1.125rem;
+font-weight: 600;
+color: #2d3748;
+margin-bottom: 1rem;
+}
+
+.about-icon {
+margin-right: 0.75rem;
+font-size: 1.25rem;
+}
+
+.about-list {
+list-style: none;
+padding-left: 0;
+color: #4a5568;
+}
+
+.about-list li {
+padding-left: 1.5rem;
+position: relative;
+margin-bottom: 0.5rem;
+}
+
+.about-list li::before {
+content: '•';
+position: absolute;
+left: 0;
+color: #2d3748;
+font-weight: bold;
+font-size: 1.2rem;
+line-height: 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+.results-grid {
+grid-template-columns: 1fr;
+}
+}

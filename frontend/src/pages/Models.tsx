@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import axios from 'axios';
+import './Models.css'; // Make sure to import the CSS file
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -106,15 +107,13 @@ const Models: React.FC = () => {
   };
 
   return (
-    <div>
+    <div className="main-content">
       {/* Header */}
-      <div className="card">
-        <div className="card-header">
-          <h1 className="card-title">Model Training</h1>
-          <p className="card-subtitle">
-            {datasetId ? `Dataset: ${datasetId}` : 'Train machine learning models'}
-          </p>
-        </div>
+      <div className="page-header">
+        <h1 className="page-title">Model Training</h1>
+        <p className="page-subtitle">
+          {datasetId ? `Dataset: ${datasetId}` : 'Train machine learning models'}
+        </p>
       </div>
 
       {/* Training Configuration */}
@@ -123,7 +122,7 @@ const Models: React.FC = () => {
           <h2 className="card-title">Training Configuration</h2>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2">
           <div className="form-group">
             <label className="form-label">Target Column</label>
             <select
@@ -175,22 +174,22 @@ const Models: React.FC = () => {
             <h2 className="card-title">Training Progress</h2>
           </div>
           
-          <div className="space-y-4">
+          <div className="progress-container">
             <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Current: {trainingStatus.current_model}</span>
+              <div className="progress-header">
+                <span>Current Model: {trainingStatus.current_model}</span>
                 <span>{trainingStatus.progress}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="progress-bar-bg">
                 <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  className="progress-bar-fg"
                   style={{ width: `${trainingStatus.progress}%` }}
                 ></div>
               </div>
             </div>
             
             {trainingStatus.message && (
-              <div className="text-sm text-gray-600">
+              <div className="progress-message">
                 {trainingStatus.message}
               </div>
             )}
@@ -206,42 +205,42 @@ const Models: React.FC = () => {
             <p className="card-subtitle">Model performance comparison</p>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="table-container">
+            <table className="results-table">
               <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 px-4">Model</th>
-                  <th className="text-left py-2 px-4">Status</th>
-                  <th className="text-left py-2 px-4">Accuracy/R²</th>
-                  <th className="text-left py-2 px-4">F1/RMSE</th>
-                  <th className="text-left py-2 px-4">Training Time</th>
-                  <th className="text-left py-2 px-4">Actions</th>
+                <tr>
+                  <th>Model</th>
+                  <th>Status</th>
+                  <th>Accuracy/R²</th>
+                  <th>F1/RMSE</th>
+                  <th>Training Time</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {models.map((model) => (
-                  <tr key={model.model_id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4 font-medium">{model.model_name}</td>
-                    <td className="py-3 px-4">
+                  <tr key={model.model_id}>
+                    <td>{model.model_name}</td>
+                    <td>
                       <span className={`status-badge ${getStatusColor(model.status)}`}>
                         {model.status}
                       </span>
                     </td>
-                    <td className="py-3 px-4">
+                    <td>
                       {model.status === 'completed' ? (
                         formatMetric(model.metrics?.test?.accuracy || model.metrics?.test?.r2)
                       ) : 'N/A'}
                     </td>
-                    <td className="py-3 px-4">
+                    <td>
                       {model.status === 'completed' ? (
                         formatMetric(model.metrics?.test?.f1_score || model.metrics?.test?.rmse)
                       ) : 'N/A'}
                     </td>
-                    <td className="py-3 px-4">
+                    <td>
                       {model.training_time ? `${model.training_time.toFixed(1)}s` : 'N/A'}
                     </td>
-                    <td className="py-3 px-4">
-                      <div className="flex gap-2">
+                    <td>
+                      <div className="actions-group">
                         {model.status === 'completed' && (
                           <>
                             <button
@@ -252,7 +251,6 @@ const Models: React.FC = () => {
                             </button>
                             <button
                               onClick={() => {
-                                // Navigate to explanations page
                                 window.open(`${API_BASE_URL}/api/v1/explanations/${model.model_id}/global`, '_blank');
                               }}
                               className="btn btn-secondary btn-sm"
@@ -276,24 +274,30 @@ const Models: React.FC = () => {
         <div className="card-header">
           <h2 className="card-title">About Model Training</h2>
         </div>
-        <div className="space-y-4">
-          <div>
-            <h3 className="font-medium mb-2">🤖 Available Algorithms</h3>
-            <ul className="text-sm text-gray-600 space-y-1">
-              <li>• Random Forest - Robust ensemble method</li>
-              <li>• LightGBM - Fast gradient boosting (if available)</li>
-              <li>• Logistic Regression - Linear classification</li>
-              <li>• Linear/Ridge Regression - Linear regression</li>
+        <div className="grid grid-cols-2">
+          <div className="about-box">
+            <h3 className="about-title">
+              <span className="about-icon">🤖</span>
+              Available Algorithms
+            </h3>
+            <ul className="about-list">
+              <li>Random Forest - Robust ensemble method</li>
+              <li>LightGBM - Fast gradient boosting</li>
+              <li>Logistic Regression - Linear classification</li>
+              <li>Linear/Ridge Regression - Linear regression</li>
             </ul>
           </div>
-          <div>
-            <h3 className="font-medium mb-2">⚙️ Automatic Features</h3>
-            <ul className="text-sm text-gray-600 space-y-1">
-              <li>• Task type detection (classification/regression)</li>
-              <li>• Hyperparameter optimization with Optuna</li>
-              <li>• Cross-validation for robust evaluation</li>
-              <li>• Feature preprocessing and encoding</li>
-              <li>• Model comparison and selection</li>
+          <div className="about-box">
+            <h3 className="about-title">
+              <span className="about-icon">⚙️</span>
+              Automatic Features
+            </h3>
+            <ul className="about-list">
+              <li>Task type detection (classification/regression)</li>
+              <li>Hyperparameter optimization with Optuna</li>
+              <li>Cross-validation for robust evaluation</li>
+              <li>Feature preprocessing and encoding</li>
+              <li>Model comparison and selection</li>
             </ul>
           </div>
         </div>

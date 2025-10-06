@@ -1,0 +1,215 @@
+/* MissingValuesInsights.css */
+
+.mv-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.mv-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.mv-description {
+  color: #4b5563;
+  font-size: 1rem;
+}
+
+.mv-tabs {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  border: 1px solid #e5e7eb;
+}
+
+.mv-tab-nav {
+  display: flex;
+  gap: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 1.5rem;
+}
+
+.mv-tab-btn {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 1rem 0.5rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  color: #64748b;
+  transition: color 0.2s, border-bottom 0.2s;
+}
+
+.mv-tab-btn.active {
+  border-bottom: 2px solid #2563eb;
+  color: #2563eb;
+}
+
+.mv-tab-btn:hover {
+  color: #1e293b;
+}
+
+.mv-tab-content {
+  padding: 1.5rem;
+}
+
+.mv-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.mv-summary-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  border: 1px solid #e5e7eb;
+}
+
+.mv-summary-card.total {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.mv-summary-card.affected {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.mv-summary-card.percentage {
+    background: #fef9c3;
+    color: #ca8a04;
+}
+
+.mv-summary-card.complete {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.mv-recommendations {
+  background: #e0e7ff;
+  border: 1px solid #a5b4fc;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.mv-recommendations-title {
+  font-weight: 600;
+  color: #4f46e5;
+  margin-bottom: 0.7rem;
+}
+
+.mv-column-list {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.mv-column-item {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.mv-progress-bar {
+  width: 100%;
+  background-color: #e5e7eb;
+  border-radius: 999px;
+  height: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.mv-progress {
+  background-color: #ef4444;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.mv-treatment-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.mv-treatment-guidelines {
+    background: #fef9c3;
+    border: 1px solid #fde68a;
+    padding: 1rem;
+    border-radius: 12px;
+}
+
+.mv-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.mv-form-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.mv-form-group select,
+.mv-form-group input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+}
+
+.mv-preview-box {
+    background: #dbeafe;
+    border: 1px solid #bfdbfe;
+    padding: 1rem;
+    border-radius: 12px;
+}
+
+.mv-action-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+.mv-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s;
+}
+
+.mv-btn-primary {
+    background-color: #2563eb;
+    color: white;
+}
+
+.mv-btn-primary:hover {
+    background-color: #1d4ed8;
+}
+
+.mv-btn-secondary {
+    background-color: #4ade80;
+    color: white;
+}
+
+.mv-btn-secondary:hover {
+    background-color: #22c55e;
+}
+
+.mv-results-box {
+    background: #dcfce7;
+    border: 1px solid #86efac;
+    padding: 1.5rem;
+    border-radius: 12px;
+    text-align: center;
+}
