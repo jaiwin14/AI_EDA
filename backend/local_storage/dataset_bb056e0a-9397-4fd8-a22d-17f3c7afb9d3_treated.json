@@ -1,9 +1,10 @@
 {
   "id": "bb056e0a-9397-4fd8-a22d-17f3c7afb9d3_treated",
+  "dataset_id": "bb056e0a-9397-4fd8-a22d-17f3c7afb9d3_treated",
   "original_id": "bb056e0a-9397-4fd8-a22d-17f3c7afb9d3",
-  "name": "Dataset - Cleaned",
+  "name": "Dataset bb056e0a-9397-4fd8-a22d-17f3c7afb9d3 - Cleaned",
   "filename": "bb056e0a-9397-4fd8-a22d-17f3c7afb9d3_treated.csv",
-  "original_filename": "bb056e0a-9397-4fd8-a22d-17f3c7afb9d3.csv",
+  "original_filename": "bb056e0a-9397-4fd8-a22d-17f3c7afb9d3_treated.csv",
   "data": [
     {
       "resultId": 2460,
@@ -330042,32 +330043,9 @@
   "metadata": {
     "original_dataset_id": "bb056e0a-9397-4fd8-a22d-17f3c7afb9d3",
     "treatment_method": "median_imputation",
-    "treatment_info": {
-      "method": "median_imputation",
-      "column": null,
-      "original_shape": [
-        10000,
-        31
-      ],
-      "parameters": {
-        "column": null,
-        "n_neighbors": null,
-        "constant_value": null,
-        "threshold": null
-      },
-      "final_shape": [
-        10000,
-        31
-      ],
-      "rows_affected": 0,
-      "missing_values_remaining": 1971,
-      "original_missing": 3920,
-      "rows_removed": 0,
-      "columns_removed": 0
-    },
-    "created_at": "2025-10-05T15:07:41.530107",
-    "is_treated": true,
     "treatment_applied": true,
+    "is_treated": true,
+    "created_at": "2025-10-06T18:11:03.196603",
     "shape": [
       10000,
       31
@@ -330107,6 +330085,13 @@
     },
     "csv_file_path": "uploads\\bb056e0a-9397-4fd8-a22d-17f3c7afb9d3_treated.csv",
     "missing_values_count": 1971,
-    "has_missing_values": true
+    "has_missing_values": true,
+    "original_shape": [
+      10000,
+      31
+    ],
+    "original_missing": 3920,
+    "rows_removed": 0,
+    "columns_removed": 0
   }
 }

@@ -14,9 +14,11 @@ const ParticlesBackground: React.FC = () => {
     await loadSlim(engine);
   }, []);
 
-  const particlesLoaded = useCallback(async (container: Container | undefined) => {
+  const particlesLoaded = useCallback(async (_container: Container | undefined) => {
     // This function is called when the particles container is loaded
     // You can perform actions with the container here if needed
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    void _container; // Mark as intentionally unused
   }, []);
 
   return (

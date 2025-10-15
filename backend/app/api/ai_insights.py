@@ -593,3 +593,515 @@ async def get_outlier_insights(dataset_id: str):
     except Exception as e:
         logger.error(f"Error getting outliers: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{dataset_id}/outliers/treat")
+async def treat_outliers(
+    dataset_id: str,
+    method: str = Query(..., description="Treatment method"),
+    column: Optional[str] = Query(None, description="Target column (optional)"),
+    detection_method: str = Query("iqr", description="Detection method for outlier removal/replacement"),
+    z_threshold: float = Query(3.0, description="Z-score threshold"),
+    lower_percentile: float = Query(1.0, description="Lower percentile for capping/winsorizing"),
+    upper_percentile: float = Query(99.0, description="Upper percentile for capping/winsorizing")
+):
+    """Apply outlier treatment to the dataset"""
+    try:
+        logger.info(f"🔧 Treating outliers for {dataset_id}")
+        logger.info(f"Method: {method}, Column: {column}")
+        df_original = await load_dataset_from_file(dataset_id)
+        original_shape = df_original.shape
+
+        # Prepare kwargs for treatment
+        treatment_kwargs = {
+            "detection_method": detection_method,
+            "z_threshold": z_threshold,
+            "lower_percentile": lower_percentile,
+            "upper_percentile": upper_percentile
+        }
+        # Remove unused keys for methods that don't use them
+        if method not in ["cap_percentile", "winsorize"]:
+            treatment_kwargs.pop("lower_percentile", None)
+            treatment_kwargs.pop("upper_percentile", None)
+        if method != "cap_z_score":
+            treatment_kwargs.pop("z_threshold", None)
+        if method not in ["remove", "replace_median", "replace_mean"]:
+            treatment_kwargs.pop("detection_method", None)
+
+        df_treated, treatment_info = await outlier_processor.treat_outliers(
+            df_original,
+            method=method,
+            column=column,
+            **treatment_kwargs
+        )
+        final_shape = df_treated.shape
+
+        # Save treated dataset
+        treated_dataset_id = f"{dataset_id}_treated"
+        treated_csv_path = settings.UPLOAD_DIR / f"{treated_dataset_id}.csv"
+        df_treated.to_csv(treated_csv_path, index=False)
+        logger.info(f"💾 Saved CSV: {treated_csv_path}")
+
+        # Create metadata
+        treated_metadata = {
+            "id": treated_dataset_id,
+            "dataset_id": treated_dataset_id,
+            "original_id": dataset_id,
+            "name": f"Dataset {dataset_id} - Outliers Treated",
+            "filename": f"{treated_dataset_id}.csv",
+            "original_filename": f"{treated_dataset_id}.csv",
+            "data": df_treated.to_dict('records'),
+            "columns": list(df_treated.columns),
+            "metadata": {
+                "original_dataset_id": dataset_id,
+                "treatment_method": method,
+                "treatment_applied": True,
+                "is_treated": True,
+                "created_at": datetime.utcnow().isoformat(),
+                "shape": list(final_shape),
+                "dtypes": {col: str(dtype) for col, dtype in df_treated.dtypes.items()},
+                "csv_file_path": str(treated_csv_path),
+                "original_shape": list(original_shape),
+                "rows_removed": int(original_shape[0] - final_shape[0]),
+            }
+        }
+        local_storage.save_json(f"dataset_{treated_dataset_id}", treated_metadata)
+        logger.info(f"💾 Saved metadata for treated dataset")
+
+        return {
+            "success": True,
+            "dataset_id": dataset_id,
+            "treated_dataset_id": treated_dataset_id,
+            "treatment_info": treatment_info,
+            "timestamp": datetime.utcnow().isoformat(),
+            "message": f"Outlier treatment applied successfully. Dataset saved as {treated_dataset_id}",
+            "csv_path": str(treated_csv_path)
+        }
+    except Exception as e:
+        logger.error(f"❌ Error treating outliers: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error treating outliers: {str(e)}"
+        )
+
+
+@router.get("/{dataset_id}/outliers/preview")
+async def preview_outlier_treatment(
+    dataset_id: str,
+    method: str,
+    column: Optional[str] = None,
+    detection_method: str = Query("iqr", description="Detection method for outlier removal/replacement"),
+    z_threshold: float = Query(3.0, description="Z-score threshold"),
+    lower_percentile: float = Query(1.0, description="Lower percentile for capping/winsorizing"),
+    upper_percentile: float = Query(99.0, description="Upper percentile for capping/winsorizing")
+):
+    """Preview outlier treatment effects"""
+    try:
+        df = await load_dataset_from_file(dataset_id)
+        treatment_kwargs = {
+            "detection_method": detection_method,
+            "z_threshold": z_threshold,
+            "lower_percentile": lower_percentile,
+            "upper_percentile": upper_percentile
+        }
+        # Remove unused keys for methods that don't use them
+        if method not in ["cap_percentile", "winsorize"]:
+            treatment_kwargs.pop("lower_percentile", None)
+            treatment_kwargs.pop("upper_percentile", None)
+        if method != "cap_z_score":
+            treatment_kwargs.pop("z_threshold", None)
+        if method not in ["remove", "replace_median", "replace_mean"]:
+            treatment_kwargs.pop("detection_method", None)
+
+        preview = await outlier_processor.get_treatment_preview(
+            df, method, column,
+            **treatment_kwargs
+        )
+        return {
+            "success": True,
+            "dataset_id": dataset_id,
+            "preview": preview,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"❌ Error previewing outlier treatment: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error previewing outlier treatment: {str(e)}"
+        )
+
+@router.get("/{dataset_id}/outliers/analysis")
+async def get_outlier_analysis(dataset_id: str):
+    """Get comprehensive outlier analysis using multiple methods"""
+    try:
+        logger.info(f"📊 Getting outlier analysis for {dataset_id}")
+        
+        df = await load_dataset_from_file(dataset_id)
+        analysis = await outlier_processor.analyze_outlier_patterns(df)
+        
+        return {
+            "success": True,
+            "analysis_type": "outlier_analysis",
+            "dataset_id": dataset_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": analysis
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error in outlier analysis: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{dataset_id}/outliers/detect")
+async def detect_outliers(
+    dataset_id: str,
+    method: str = Query("z_score"),
+    column: Optional[str] = Query(None),
+    threshold: float = Query(3.0),
+    multiplier: float = Query(1.5),
+    lower_percentile: int = Query(1),
+    upper_percentile: int = Query(99)
+):
+    """Detect outliers using specified method"""
+    try:
+        logger.info(f"🔍 Detecting outliers for {dataset_id} using {method}")
+        
+        df = await load_dataset_from_file(dataset_id)
+        
+        params = {
+            "threshold": threshold,
+            "multiplier": multiplier,
+            "lower": lower_percentile,
+            "upper": upper_percentile
+        }
+        
+        result = await outlier_processor.detect_outliers(
+            df,
+            method=method,
+            column=column,
+            **params
+        )
+        
+        return {
+            "success": True,
+            "dataset_id": dataset_id,
+            "method": method,
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": result
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error detecting outliers: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{dataset_id}/outliers/summary")
+async def get_outlier_summary(dataset_id: str):
+    """Get summary of outliers in dataset"""
+    try:
+        logger.info(f"📈 Getting outlier summary for {dataset_id}")
+        
+        df = await load_dataset_from_file(dataset_id)
+        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        
+        if not numeric_cols:
+            return {
+                "success": False,
+                "error": "No numeric columns found",
+                "dataset_id": dataset_id,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        
+        summary = {
+            "dataset_id": dataset_id,
+            "total_rows": len(df),
+            "numeric_columns": len(numeric_cols),
+            "columns_analysis": {},
+            "overall_statistics": {
+                "columns_with_outliers": 0,
+                "total_potential_outliers": 0,
+                "dataset_outlier_percentage": 0.0
+            }
+        }
+        
+        total_outliers = 0
+        cols_with_outliers = 0
+        
+        for col in numeric_cols:
+            col_data = df[col].dropna()
+            if len(col_data) == 0:
+                continue
+            
+            Q1 = col_data.quantile(0.25)
+            Q3 = col_data.quantile(0.75)
+            IQR = Q3 - Q1
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+            
+            outliers_mask = (col_data < lower_bound) | (col_data > upper_bound)
+            outlier_count = outliers_mask.sum()
+            
+            if outlier_count > 0:
+                cols_with_outliers += 1
+                total_outliers += outlier_count
+            
+            outlier_values = col_data[outliers_mask].tolist() if outlier_count > 0 else []
+            
+            summary["columns_analysis"][col] = {
+                "outlier_count": int(outlier_count),
+                "outlier_percentage": float((outlier_count / len(col_data)) * 100),
+                "bounds": {
+                    "lower": float(lower_bound),
+                    "upper": float(upper_bound)
+                },
+                "statistics": {
+                    "min": float(col_data.min()),
+                    "q1": float(Q1),
+                    "median": float(col_data.median()),
+                    "q3": float(Q3),
+                    "max": float(col_data.max()),
+                    "mean": float(col_data.mean()),
+                    "std": float(col_data.std())
+                },
+                "sample_outliers": outlier_values[:10]
+            }
+        
+        summary["overall_statistics"]["columns_with_outliers"] = cols_with_outliers
+        summary["overall_statistics"]["total_potential_outliers"] = total_outliers
+        summary["overall_statistics"]["dataset_outlier_percentage"] = float((total_outliers / len(df)) * 100)
+        
+        return {
+            "success": True,
+            "dataset_id": dataset_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": summary
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{dataset_id}/outliers/preview-treatment")
+async def preview_treatment(
+    dataset_id: str,
+    method: str = Query(...),
+    column: Optional[str] = Query(None),
+    detection_method: str = Query("iqr"),
+    lower_percentile: int = Query(1),
+    upper_percentile: int = Query(99),
+    z_threshold: float = Query(3.0)
+):
+    """Preview outlier treatment"""
+    try:
+        df = await load_dataset_from_file(dataset_id)
+        
+        params = {
+            "detection_method": detection_method,
+            "lower_percentile": lower_percentile,
+            "upper_percentile": upper_percentile,
+            "z_threshold": z_threshold
+        }
+        
+        preview = await outlier_processor.get_treatment_preview(
+            df,
+            method=method,
+            column=column,
+            **params
+        )
+        
+        return {
+            "success": True,
+            "dataset_id": dataset_id,
+            "method": method,
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": preview
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{dataset_id}/outliers/treat")
+async def treat_outliers(
+    dataset_id: str,
+    method: str = Query(...),
+    column: Optional[str] = Query(None),
+    detection_method: str = Query("iqr"),
+    lower_percentile: int = Query(1),
+    upper_percentile: int = Query(99),
+    z_threshold: float = Query(3.0)
+):
+    """Apply outlier treatment"""
+    try:
+        logger.info(f"🔧 Treating outliers for {dataset_id}")
+        
+        df_original = await load_dataset_from_file(dataset_id)
+        original_shape = df_original.shape
+        
+        params = {
+            "detection_method": detection_method,
+            "lower_percentile": lower_percentile,
+            "upper_percentile": upper_percentile,
+            "z_threshold": z_threshold
+        }
+        
+        df_treated, treatment_info = await outlier_processor.treat_outliers(
+            df_original,
+            method=method,
+            column=column,
+            **params
+        )
+        
+        final_shape = df_treated.shape
+        
+        treated_dataset_id = f"{dataset_id}_outliers_treated"
+        treated_csv_path = settings.UPLOAD_DIR / f"{treated_dataset_id}.csv"
+        
+        df_treated.to_csv(treated_csv_path, index=False)
+        logger.info(f"💾 Saved CSV: {treated_csv_path}")
+        
+        treated_metadata = {
+            "id": treated_dataset_id,
+            "dataset_id": treated_dataset_id,
+            "original_id": dataset_id,
+            "name": f"Dataset {dataset_id} - Outliers Treated",
+            "filename": f"{treated_dataset_id}.csv",
+            "data": df_treated.to_dict('records'),
+            "columns": list(df_treated.columns),
+            "metadata": {
+                "original_dataset_id": dataset_id,
+                "treatment_method": method,
+                "treatment_applied": True,
+                "is_treated": True,
+                "treatment_type": "outlier",
+                "created_at": datetime.utcnow().isoformat(),
+                "shape": list(final_shape),
+                "dtypes": {col: str(dtype) for col, dtype in df_treated.dtypes.items()},
+                "csv_file_path": str(treated_csv_path),
+                "original_shape": list(original_shape),
+                "rows_removed": int(original_shape[0] - final_shape[0]),
+                "columns_removed": int(original_shape[1] - final_shape[1]),
+                "treatment_details": treatment_info
+            }
+        }
+        
+        local_storage.save_json(f"dataset_{treated_dataset_id}", treated_metadata)
+        
+        try:
+            original_metadata = local_storage.load_json(f"dataset_{dataset_id}")
+            if 'metadata' not in original_metadata:
+                original_metadata['metadata'] = {}
+            original_metadata['metadata']['outlier_treatment_applied'] = True
+            original_metadata['metadata']['treated_dataset_id'] = treated_dataset_id
+            original_metadata['metadata']['treatment_timestamp'] = datetime.utcnow().isoformat()
+            local_storage.save_json(f"dataset_{dataset_id}", original_metadata)
+        except Exception as e:
+            logger.warning(f"⚠️ Could not update original metadata: {e}")
+        
+        try:
+            history_key = f"treatment_history_{dataset_id}"
+            try:
+                history = local_storage.load_json(history_key)
+                if 'treatments' not in history:
+                    history = {"treatments": []}
+            except:
+                history = {"treatments": []}
+            
+            history["treatments"].append({
+                "type": "outlier",
+                "method": method,
+                "column": column,
+                "timestamp": datetime.utcnow().isoformat(),
+                "treated_dataset_id": treated_dataset_id,
+                "original_shape": list(original_shape),
+                "final_shape": list(final_shape),
+                "rows_removed": int(original_shape[0] - final_shape[0])
+            })
+            
+            local_storage.save_json(history_key, history)
+        except Exception as e:
+            logger.warning(f"⚠️ Could not save history: {e}")
+        
+        return {
+            "success": True,
+            "dataset_id": dataset_id,
+            "treated_dataset_id": treated_dataset_id,
+            "treatment_info": {
+                "method": method,
+                "column": column,
+                "original_shape": list(original_shape),
+                "final_shape": list(final_shape),
+                "rows_removed": int(original_shape[0] - final_shape[0]),
+                "columns_removed": int(original_shape[1] - final_shape[1]),
+                "details": treatment_info
+            },
+            "timestamp": datetime.utcnow().isoformat(),
+            "message": f"Outlier treatment applied. Dataset saved as {treated_dataset_id}",
+            "csv_path": str(treated_csv_path)
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error treating outliers: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{dataset_id}/outliers/treatment-status")
+async def get_treatment_status(dataset_id: str):
+    """Check if outlier treatment has been applied"""
+    try:
+        treated_dataset_id = f"{dataset_id}_outliers_treated"
+        treated_files = list(settings.UPLOAD_DIR.glob(f"{treated_dataset_id}.*"))
+        has_treated_file = len(treated_files) > 0
+        
+        treatment_applied = False
+        try:
+            original_metadata = local_storage.load_json(f"dataset_{dataset_id}")
+            treatment_applied = original_metadata.get('metadata', {}).get('outlier_treatment_applied', False)
+        except:
+            pass
+        
+        return {
+            "success": True,
+            "dataset_id": dataset_id,
+            "treatment_applied": has_treated_file or treatment_applied,
+            "has_treated_file": has_treated_file,
+            "treated_dataset_id": treated_dataset_id if has_treated_file else None,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{dataset_id}/outliers/treatment-history")
+async def get_treatment_history(dataset_id: str):
+    """Get history of outlier treatments applied"""
+    try:
+        history_key = f"treatment_history_{dataset_id}"
+        
+        try:
+            history = local_storage.load_json(history_key)
+        except:
+            history = {"treatments": []}
+        
+        outlier_treatments = [
+            t for t in history.get("treatments", [])
+            if t.get("type") == "outlier"
+        ]
+        
+        return {
+            "success": True,
+            "dataset_id": dataset_id,
+            "treatments": outlier_treatments,
+            "total_treatments": len(outlier_treatments),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))

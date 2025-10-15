@@ -341,8 +341,12 @@ class OutlierProcessor:
         """Generate global recommendations for outlier treatment"""
         recommendations = []
         
-        total_outliers = analysis["summary"]["total_consensus_outliers"]
-        outlier_percentage = analysis["summary"]["consensus_outlier_percentage"]
+        # Calculate total outliers directly instead of relying on summary
+        total_outliers = sum(
+            len(col_data["consensus_outliers"]) 
+            for col_data in analysis["column_analysis"].values()
+        )
+        outlier_percentage = (total_outliers / analysis["dataset_info"]["total_rows"]) * 100 if analysis["dataset_info"]["total_rows"] > 0 else 0
         
         if outlier_percentage < 1:
             recommendations.append("✅ Very low outlier percentage - consider simple removal")

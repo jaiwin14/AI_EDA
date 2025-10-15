@@ -31,13 +31,8 @@ const Navbar: React.FC = () => {
             </Link>
           </li>
           <li>
-            <Link to="/models" className={isActive('/models') ? 'active' : ''}>
-              Models
-            </Link>
-          </li>
-          <li>
-            <Link to="/predictions" className={isActive('/predictions') ? 'active' : ''}>
-              Predictions
+            <Link to="/models" className={isActive('/models') || isActive('/predictions') || isActive('/ml-workflow') ? 'active' : ''}>
+              ML Workflow
             </Link>
           </li>
         </ul>

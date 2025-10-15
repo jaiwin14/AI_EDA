@@ -1,0 +1,19 @@
+{
+  "treatments": [
+    {
+      "method": "forward_fill",
+      "column": "rating_count",
+      "timestamp": "2025-10-06T15:26:34.518104",
+      "treated_dataset_id": "9a5abb83-d4d2-4be4-b423-e09be5452e35_treated",
+      "original_shape": [
+        1465,
+        16
+      ],
+      "final_shape": [
+        1465,
+        16
+      ],
+      "missing_removed": 2
+    }
+  ]
+}
