@@ -6,8 +6,8 @@ import Home from './pages/Home';
 import Upload from './pages/Upload';
 import EDA from './pages/EDA';
 import MLWorkflow from './pages/MLWorkflow';
-import Models from './pages/Models';
-import Predictions from './pages/Predictions';
+// import Models from './pages/Models';
+// import Predictions from './pages/Predictions';
 import Preprocessing from './pages/Preprocessing';
 import './App.css';
 
@@ -35,8 +35,8 @@ function App() {
               <Route path="/predictions/:modelId?" element={<MLWorkflow />} />
               <Route path="/ml-workflow/:datasetId?" element={<MLWorkflow />} />
               <Route path="/preprocessing/:datasetId?" element={<Preprocessing />} />
-              <Route path="/models/:datasetId?" element={<Models />} />
-              <Route path="/predictions/:modelId?" element={<Predictions />} />
+              {/* <Route path="/models/:datasetId?" element={<Models />} />
+              <Route path="/predictions/:modelId?" element={<Predictions />} /> */}
             </Routes>
           </main>
           <Toaster

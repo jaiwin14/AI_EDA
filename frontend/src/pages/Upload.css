@@ -184,12 +184,12 @@
 }
 
 /* UPDATED: Adjusted column widths for the new 6-column layout */
-.datasets-table th:nth-child(1), .datasets-table td:nth-child(1) { width: 40%; } /* Filename */
+.datasets-table th:nth-child(1), .datasets-table td:nth-child(1) { width: 35%; } /* Filename */
 .datasets-table th:nth-child(2), .datasets-table td:nth-child(2) { width: 10%; } /* Size */
 .datasets-table th:nth-child(3), .datasets-table td:nth-child(3) { width: 12%; } /* Rows x Cols */
 .datasets-table th:nth-child(4), .datasets-table td:nth-child(4) { width: 18%; } /* Upload Time */
 .datasets-table th:nth-child(5), .datasets-table td:nth-child(5) { width: 10%; } /* Status */
-.datasets-table th:nth-child(6), .datasets-table td:nth-child(6) { width: 10%; } /* Actions */
+.datasets-table th:nth-child(6), .datasets-table td:nth-child(6) { width: 15%; } /* Actions */
 
 /* Style the Filename cell for better readability */
   .cell-filename, .cell-size, .cell-dimensions, .cell-time {
@@ -203,7 +203,7 @@
 }
 
 .cell-actions {
-  padding: 1rem;
+  padding: 0 3.7rem;
   text-align: center;
 }
 
