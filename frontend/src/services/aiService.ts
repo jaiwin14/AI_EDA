@@ -1,4 +1,4 @@
-// frontend/src/services/aiService.ts - FIXED VERSION
+// frontend/src/services/aiService.ts - CLEANED & FIXED VERSION
 
 import axios from 'axios';
 
@@ -13,7 +13,7 @@ const apiClient = axios.create({
 
 const aiService = {
   // ============================================================================
-  // MISSING VALUES - FIXED METHODS
+  // MISSING VALUES METHODS
   // ============================================================================
 
   /**
@@ -27,7 +27,7 @@ const aiService = {
   },
 
   /**
-   * Apply missing value treatment - FIXED
+   * Apply missing value treatment
    */
   treatMissingValues: async (
     datasetId: string,
@@ -40,28 +40,23 @@ const aiService = {
     } = {}
   ) => {
     console.log('🔧 Applying treatment:', { datasetId, method, options });
-    
+
     try {
       const params = new URLSearchParams();
       params.append('method', method);
-      
-      if (options.column) {
-        params.append('column', options.column);
-      }
-      if (options.n_neighbors !== undefined) {
+
+      if (options.column) params.append('column', options.column);
+      if (options.n_neighbors !== undefined)
         params.append('n_neighbors', options.n_neighbors.toString());
-      }
-      if (options.constant_value !== undefined) {
+      if (options.constant_value !== undefined)
         params.append('constant_value', options.constant_value);
-      }
-      if (options.threshold !== undefined) {
+      if (options.threshold !== undefined)
         params.append('threshold', options.threshold.toString());
-      }
 
       const response = await apiClient.post(
         `/ai-insights/${datasetId}/missing-values/treat?${params.toString()}`
       );
-      
+
       console.log('✅ Treatment response:', response.data);
       return response.data;
     } catch (error: any) {
@@ -85,27 +80,22 @@ const aiService = {
     } = {}
   ) => {
     console.log('👁️ Previewing treatment:', { datasetId, method, options });
-    
+
     const params = new URLSearchParams();
     params.append('method', method);
-    
-    if (options.column) {
-      params.append('column', options.column);
-    }
-    if (options.n_neighbors !== undefined) {
+
+    if (options.column) params.append('column', options.column);
+    if (options.n_neighbors !== undefined)
       params.append('n_neighbors', options.n_neighbors.toString());
-    }
-    if (options.constant_value !== undefined) {
+    if (options.constant_value !== undefined)
       params.append('constant_value', options.constant_value);
-    }
-    if (options.threshold !== undefined) {
+    if (options.threshold !== undefined)
       params.append('threshold', options.threshold.toString());
-    }
 
     const response = await apiClient.get(
       `/ai-insights/${datasetId}/missing-values/preview?${params.toString()}`
     );
-    
+
     console.log('✅ Preview response:', response.data);
     return response.data;
   },
@@ -146,24 +136,182 @@ const aiService = {
   },
 
   // ============================================================================
-  // OTHER AI INSIGHTS METHODS
+  // OUTLIER METHODS
   // ============================================================================
 
   /**
-   * Get correlation insights
+   * Get comprehensive outlier analysis
    */
-  getCorrelationInsights: async (datasetId: string) => {
-    const response = await apiClient.get(`/ai-insights/${datasetId}/correlations`);
+  getOutlierAnalysis: async (datasetId: string) => {
+    console.log('📊 Fetching outlier analysis for:', datasetId);
+    const response = await apiClient.get(`/ai-insights/${datasetId}/outliers/analysis`);
+    console.log('✅ Received analysis:', response.data);
     return response.data;
   },
 
   /**
-   * Get outlier insights
+   * Detect outliers using specified method
    */
-  getOutlierInsights: async (datasetId: string) => {
-    const response = await apiClient.get(`/ai-insights/${datasetId}/outliers`);
+  detectOutliers: async (
+    datasetId: string,
+    options: {
+      method?: string;
+      column?: string;
+      threshold?: number;
+      multiplier?: number;
+      lower_percentile?: number;
+      upper_percentile?: number;
+    } = {}
+  ) => {
+    console.log('🔍 Detecting outliers:', { datasetId, options });
+
+    const params = new URLSearchParams();
+    params.append('method', options.method || 'z_score');
+
+    if (options.column) params.append('column', options.column);
+    if (options.threshold !== undefined)
+      params.append('threshold', options.threshold.toString());
+    if (options.multiplier !== undefined)
+      params.append('multiplier', options.multiplier.toString());
+    if (options.lower_percentile !== undefined)
+      params.append('lower_percentile', options.lower_percentile.toString());
+    if (options.upper_percentile !== undefined)
+      params.append('upper_percentile', options.upper_percentile.toString());
+
+    const response = await apiClient.get(
+      `/ai-insights/${datasetId}/outliers/detect?${params.toString()}`
+    );
+
+    console.log('✅ Detection response:', response.data);
     return response.data;
   },
+
+  /**
+   * Get outlier summary
+   */
+  getOutlierSummary: async (datasetId: string) => {
+    console.log('📈 Fetching outlier summary for:', datasetId);
+    const response = await apiClient.get(`/ai-insights/${datasetId}/outliers/summary`);
+    console.log('✅ Received summary:', response.data);
+    return response.data;
+  },
+
+  /**
+   * Preview outlier treatment
+   */
+  previewOutlierTreatment: async (
+    datasetId: string,
+    method: string,
+    options: {
+      column?: string;
+      detection_method?: string;
+      lower_percentile?: number;
+      upper_percentile?: number;
+      z_threshold?: number;
+    } = {}
+  ) => {
+    console.log('👁️ Previewing treatment:', { datasetId, method, options });
+
+    const params = new URLSearchParams();
+    params.append('method', method);
+
+    if (options.column) params.append('column', options.column);
+    params.append('detection_method', options.detection_method || 'iqr');
+
+    if (options.lower_percentile !== undefined)
+      params.append('lower_percentile', options.lower_percentile.toString());
+    if (options.upper_percentile !== undefined)
+      params.append('upper_percentile', options.upper_percentile.toString());
+    if (options.z_threshold !== undefined)
+      params.append('z_threshold', options.z_threshold.toString());
+
+    const response = await apiClient.get(
+      `/ai-insights/${datasetId}/outliers/preview-treatment?${params.toString()}`
+    );
+
+    console.log('✅ Preview response:', response.data);
+    return response.data;
+  },
+
+  /**
+   * Apply outlier treatment
+   */
+  treatOutliers: async (
+    datasetId: string,
+    method: string,
+    options: {
+      column?: string;
+      detection_method?: string;
+      lower_percentile?: number;
+      upper_percentile?: number;
+      z_threshold?: number;
+    } = {}
+  ) => {
+    console.log('🔧 Applying treatment:', { datasetId, method, options });
+
+    try {
+      const params = new URLSearchParams();
+      params.append('method', method);
+
+      if (options.column) params.append('column', options.column);
+      params.append('detection_method', options.detection_method || 'iqr');
+
+      if (options.lower_percentile !== undefined)
+        params.append('lower_percentile', options.lower_percentile.toString());
+      if (options.upper_percentile !== undefined)
+        params.append('upper_percentile', options.upper_percentile.toString());
+      if (options.z_threshold !== undefined)
+        params.append('z_threshold', options.z_threshold.toString());
+
+      const response = await apiClient.post(
+        `/ai-insights/${datasetId}/outliers/treat?${params.toString()}`
+      );
+
+      console.log('✅ Treatment response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Treatment error:', error);
+      console.error('Error details:', error.response?.data);
+      throw error;
+    }
+  },
+
+  /**
+   * Get outlier treatment status
+   */
+  getOutlierTreatmentStatus: async (datasetId: string) => {
+    console.log('🔍 Checking outlier treatment status for:', datasetId);
+    const response = await apiClient.get(`/ai-insights/${datasetId}/outliers/treatment-status`);
+    console.log('✅ Status:', response.data);
+    return response.data;
+  },
+
+  /**
+   * Get outlier treatment history
+   */
+  getOutlierTreatmentHistory: async (datasetId: string) => {
+    console.log('📜 Fetching treatment history for:', datasetId);
+    const response = await apiClient.get(`/ai-insights/${datasetId}/outliers/treatment-history`);
+    console.log('✅ History:', response.data);
+    return response.data;
+  },
+
+  /**
+   * Download treated dataset
+   */
+  downloadOutlierTreatedDataset: async (datasetId: string) => {
+    console.log('📥 Downloading outlier-treated dataset:', datasetId);
+    const treatedId = `${datasetId}_outliers_treated`;
+    const response = await apiClient.get(`/ai-insights/${treatedId}/download/csv`, {
+      responseType: 'blob',
+    });
+    console.log('✅ Download complete');
+    return response.data;
+  },
+
+  // ============================================================================
+  // OTHER AI INSIGHTS
+  // ============================================================================
 
   /**
    * Get dataset overview
@@ -181,25 +329,21 @@ const aiService = {
     return response.data;
   },
 
-  /**
-   * Get distribution insights
-   */
+  getCorrelationInsights: async (datasetId: string) => {
+    const response = await apiClient.get(`/ai-insights/${datasetId}/correlations`);
+    return response.data;
+  },
+
   getDistributionInsights: async (datasetId: string) => {
     const response = await apiClient.get(`/ai-insights/${datasetId}/distributions`);
     return response.data;
   },
 
-  /**
-   * Get data quality insights
-   */
   getDataQualityInsights: async (datasetId: string) => {
     const response = await apiClient.get(`/ai-insights/${datasetId}/data-quality`);
     return response.data;
   },
 
-  /**
-   * Get feature importance insights
-   */
   getFeatureImportanceInsights: async (datasetId: string) => {
     const response = await apiClient.get(`/ai-insights/${datasetId}/features`);
     return response.data;

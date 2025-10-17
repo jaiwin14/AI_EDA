@@ -1,0 +1,34 @@
+{
+  "treatments": [
+    {
+      "method": "drop_rows",
+      "column": "rating_count",
+      "timestamp": "2025-10-06T15:52:54.227091",
+      "treated_dataset_id": "9f29eeb5-48da-4249-9329-ac56c1c90e29_treated",
+      "original_shape": [
+        1465,
+        16
+      ],
+      "final_shape": [
+        1463,
+        16
+      ],
+      "missing_removed": 2
+    },
+    {
+      "method": "drop_rows",
+      "column": "rating_count",
+      "timestamp": "2025-10-14T08:57:07.781722",
+      "treated_dataset_id": "9f29eeb5-48da-4249-9329-ac56c1c90e29_treated",
+      "original_shape": [
+        1465,
+        16
+      ],
+      "final_shape": [
+        1463,
+        16
+      ],
+      "missing_removed": 2
+    }
+  ]
+}
