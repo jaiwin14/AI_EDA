@@ -12,7 +12,7 @@ const Navbar: React.FC = () => {
     <nav className="navbar">
       <div className="navbar-content">
         <Link to="/" className="navbar-brand">
-          🤖 AI EDA Platform
+          🤖 EDA4ALL
         </Link>
         <ul className="navbar-nav">
           <li>
@@ -35,7 +35,7 @@ const Navbar: React.FC = () => {
               Preprocessing
             </Link>
           </li>
-          <li>
+          {/* <li>
             <Link to="/models" className={isActive('/models') ? 'active' : ''}>
               Models
             </Link>
@@ -44,7 +44,7 @@ const Navbar: React.FC = () => {
             <Link to="/predictions" className={isActive('/predictions') ? 'active' : ''}>
               Predictions
             </Link>
-          </li>
+          </li> */}
         </ul>
       </div>
     </nav>

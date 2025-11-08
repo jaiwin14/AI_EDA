@@ -31,8 +31,8 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/upload" element={<Upload />} />
               <Route path="/eda/:datasetId?" element={<EDA />} />
-              <Route path="/models/:datasetId?" element={<MLWorkflow />} />
-              <Route path="/predictions/:modelId?" element={<MLWorkflow />} />
+              {/* <Route path="/models/:datasetId?" element={<MLWorkflow />} />
+              <Route path="/predictions/:modelId?" element={<MLWorkflow />} /> */}
               <Route path="/ml-workflow/:datasetId?" element={<MLWorkflow />} />
               <Route path="/preprocessing/:datasetId?" element={<Preprocessing />} />
               {/* <Route path="/models/:datasetId?" element={<Models />} />

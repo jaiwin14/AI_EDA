@@ -11,7 +11,7 @@ const Home: React.FC = () => {
       <div className="main-content">
         {/* Header Section */}
         <header className="home-header">
-          <h1>Welcome to the AI EDA Platform</h1>
+          <h1>Welcome to the EDA4ALL</h1>
           <p>
             Your all-in-one solution for Automated Exploratory Data Analysis and Machine Learning.
             Streamline your workflow from upload to prediction.
@@ -40,7 +40,7 @@ const Home: React.FC = () => {
             </Link>
           </div>
 
-          <div className="action-card">
+          {/* <div className="action-card">
             <h3>Train Models</h3>
             <p>
               Leverage AutoML to train robust models with multiple algorithms and optimizations.
@@ -58,7 +58,7 @@ const Home: React.FC = () => {
             <Link to="/predictions" className="btn btn-primary">
               Predict
             </Link>
-          </div>
+          </div> */}
         </div>
 
         {/* Features Section */}
