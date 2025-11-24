@@ -12,3 +12,5 @@ __pycache__/
 # Ignore environment/config files
 
 node_modules/
+
+.env
